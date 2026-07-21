@@ -4,7 +4,7 @@ services:
     container_name: social-dashboard
     restart: unless-stopped
     ports:
-      - "3040:3040"
+      - "${HOST_PORT:-3040}:3040"
     volumes:
       - ve_data:/app/data
     environment:
