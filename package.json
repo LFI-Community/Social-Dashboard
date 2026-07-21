@@ -1,0 +1,22 @@
+{
+  "name": "veille-elus",
+  "version": "0.1.0",
+  "description": "Outil de veille des comptes réseaux sociaux des élus et personnalités politiques françaises : référentiel RNE, découverte des comptes, taux de posting et score de pertinence à surveiller.",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "import:rne": "node src/importers/rne.js",
+    "import:wikidata": "node src/importers/wikidata.js",
+    "refresh": "node src/scheduler.js --once"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.2.0",
+    "cookie-parser": "^1.4.7",
+    "csv-parse": "^5.5.6",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3"
+  }
+}

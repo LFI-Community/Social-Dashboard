@@ -1,0 +1,10 @@
+<%- include('../partials/head', { pageTitle: 'Connexion' }) %>
+<div class="login">
+  <h1>Admin</h1>
+  <% if (error) { %><p class="err"><%= error %></p><% } %>
+  <form method="post" action="/admin/login">
+    <input type="password" name="pin" placeholder="Code d'accès" autofocus required>
+    <button type="submit">Entrer</button>
+  </form>
+</div>
+<%- include('../partials/foot') %>

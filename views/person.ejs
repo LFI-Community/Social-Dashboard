@@ -1,0 +1,38 @@
+<%- include('partials/head', { pageTitle: person.display_name }) %>
+
+<a class="back" href="/">← Classement</a>
+<h1><%= person.display_name %> <% if (person.is_public_figure) { %><span class="chip">personnalité</span><% } %></h1>
+
+<section>
+  <h2>Mandats</h2>
+  <% if (mandates.length === 0) { %><p class="muted">Aucun mandat enregistré.</p><% } else { %>
+    <ul class="mandates">
+      <% mandates.forEach(function(m){ %>
+        <li><strong><%= m.function_label || m.mandate_type %></strong> — <%= m.territory_label || m.territory_code %>
+          <span class="muted">(poids <%= m.mandate_weight %>)</span></li>
+      <% }) %>
+    </ul>
+  <% } %>
+</section>
+
+<section>
+  <h2>Comptes</h2>
+  <% if (accounts.length === 0) { %><p class="muted">Aucun compte rattaché.</p><% } else { %>
+    <table class="ranking">
+      <thead><tr><th>Réseau</th><th>Handle</th><th>Abonnés</th><th>Posts/sem.</th><th>Score</th></tr></thead>
+      <tbody>
+      <% accounts.forEach(function(a){ %>
+        <tr>
+          <td><span class="net net-<%= a.network %>"><%= a.network %></span></td>
+          <td><a href="<%= a.url %>" target="_blank" rel="noopener">@<%= a.handle %></a></td>
+          <td><%= (a.followers || 0).toLocaleString('fr-FR') %></td>
+          <td><%= a.posts_per_week != null ? a.posts_per_week.toFixed(1) : '—' %></td>
+          <td><%= a.watch_score != null ? a.watch_score.toFixed(3) : '—' %></td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
+
+<%- include('partials/foot') %>

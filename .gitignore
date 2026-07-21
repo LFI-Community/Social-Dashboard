@@ -1,0 +1,9 @@
+node_modules/
+data/*.db
+data/*.db-*
+data/*.csv
+.env
+_bmad-output/
+_bmad/
+.claude/
+*.log

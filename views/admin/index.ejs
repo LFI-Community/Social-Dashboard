@@ -1,0 +1,49 @@
+<%- include('../partials/head', { pageTitle: 'Admin' }) %>
+<h1>Admin</h1>
+
+<section>
+  <h2>Ajouter un compte</h2>
+  <form class="add-account" method="post" action="/api/accounts" onsubmit="return sendAccount(event)">
+    <select name="network" required>
+      <option value="x">X</option><option value="instagram">Instagram</option>
+      <option value="facebook">Facebook</option><option value="tiktok">TikTok</option>
+      <option value="youtube">YouTube</option><option value="twitch">Twitch</option>
+    </select>
+    <input name="handle" placeholder="handle (ex: jean_dupont)">
+    <input name="account_ref" placeholder="ref stable (channel id / url) — optionnel">
+    <input name="url" placeholder="URL du profil">
+    <input name="person_id" placeholder="person_id (vide = standalone)">
+    <button type="submit">Ajouter</button>
+  </form>
+  <p id="add-result" class="muted"></p>
+</section>
+
+<section>
+  <h2>Collecteurs</h2>
+  <ul class="mandates">
+    <% collectors.forEach(function(c){ %>
+      <li><span class="chip <%= c.enabled ? 'on' : 'off' %>"><%= c.enabled ? 'ON' : 'OFF' %></span>
+        <strong><%= c.network %></strong> — <%= c.name %> <span class="muted">(<%= c.kind %>)</span></li>
+    <% }) %>
+  </ul>
+</section>
+
+<section>
+  <h2>Dernières personnes</h2>
+  <ul>
+    <% persons.forEach(function(p){ %><li><a href="/person/<%= p.id %>"><%= p.display_name %></a> <span class="muted">#<%= p.id %></span></li><% }) %>
+  </ul>
+</section>
+
+<script>
+async function sendAccount(e){
+  e.preventDefault();
+  const f = e.target, body = Object.fromEntries(new FormData(f));
+  const r = await fetch('/api/accounts', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const j = await r.json();
+  document.getElementById('add-result').textContent = r.ok ? ('Ajouté #' + j.id) : ('Erreur : ' + (j.error||r.status));
+  if (r.ok) f.reset();
+  return false;
+}
+</script>
+<%- include('../partials/foot') %>

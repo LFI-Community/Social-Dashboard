@@ -1,0 +1,42 @@
+<%- include('partials/head', { pageTitle: 'Classement' }) %>
+
+<section class="hero">
+  <h1>Qui surveiller en priorité</h1>
+  <p class="sub">Classement par <strong>score de pertinence</strong> (activité × poids du mandat), fenêtre <%= window %> j.</p>
+  <div class="stats">
+    <div class="stat"><span class="n"><%= counts.persons.toLocaleString('fr-FR') %></span><span class="l">personnes</span></div>
+    <div class="stat"><span class="n"><%= counts.mandates.toLocaleString('fr-FR') %></span><span class="l">mandats</span></div>
+    <div class="stat"><span class="n"><%= counts.accounts.toLocaleString('fr-FR') %></span><span class="l">comptes</span></div>
+  </div>
+  <div class="collectors">
+    <% collectors.forEach(function(c){ %>
+      <span class="chip <%= c.enabled ? 'on' : 'off' %> <%= c.kind %>"><%= c.network %><% if (c.kind==='paid'){ %> · payant<% } %></span>
+    <% }) %>
+  </div>
+</section>
+
+<% if (rows.length === 0) { %>
+  <div class="empty">
+    <p>Aucune donnée d'activité pour l'instant.</p>
+    <p class="muted">Prochaines étapes : import RNE (<code>npm run import:rne</code>), découverte Wikidata (<code>npm run import:wikidata</code>), puis collecte YouTube/Twitch.</p>
+  </div>
+<% } else { %>
+  <table class="ranking">
+    <thead><tr><th>#</th><th>Personne</th><th>Réseau</th><th>Posts/sem.</th><th>Abonnés</th><th>Dernier post</th><th>Score</th></tr></thead>
+    <tbody>
+    <% rows.forEach(function(r, i){ %>
+      <tr>
+        <td class="rank"><%= i + 1 %></td>
+        <td><% if (r.person_id) { %><a href="/person/<%= r.person_id %>"><%= r.display_name %></a><% } else { %><em>standalone</em><% } %></td>
+        <td><span class="net net-<%= r.network %>"><%= r.network %></span> <span class="muted">@<%= r.handle %></span></td>
+        <td><%= (r.posts_per_week || 0).toFixed(1) %></td>
+        <td><%= (r.followers || 0).toLocaleString('fr-FR') %></td>
+        <td class="muted"><%= r.last_post_at ? r.last_post_at.slice(0,10) : '—' %></td>
+        <td><strong><%= (r.watch_score || 0).toFixed(3) %></strong></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('partials/foot') %>

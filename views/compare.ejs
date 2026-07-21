@@ -1,0 +1,30 @@
+<%- include('partials/head', { pageTitle: 'Comparer' }) %>
+
+<h1>Comparer des élu·es</h1>
+<form class="compare-form" method="get" action="/compare">
+  <label>IDs (séparés par des virgules, max 4) <input name="ids" value="<%= (people.map(function(p){return p.person.id})).join(',') %>" placeholder="12,45,78"></label>
+  <button type="submit">Comparer</button>
+</form>
+
+<% if (people.length === 0) { %>
+  <p class="muted">Saisir des IDs de personnes à comparer côte à côte.</p>
+<% } else { %>
+  <div class="compare-grid">
+    <% people.forEach(function(p){ %>
+      <div class="col">
+        <h3><a href="/person/<%= p.person.id %>"><%= p.person.display_name %></a></h3>
+        <% if (p.accounts.length === 0) { %><p class="muted">Aucun compte.</p><% } else { %>
+          <ul>
+            <% p.accounts.forEach(function(a){ %>
+              <li><span class="net net-<%= a.network %>"><%= a.network %></span>
+                <%= a.posts_per_week != null ? a.posts_per_week.toFixed(1) + ' p/sem' : '—' %>
+                · <%= (a.followers||0).toLocaleString('fr-FR') %> ab.</li>
+            <% }) %>
+          </ul>
+        <% } %>
+      </div>
+    <% }) %>
+  </div>
+<% } %>
+
+<%- include('partials/foot') %>

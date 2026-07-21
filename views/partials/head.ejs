@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= typeof pageTitle !== 'undefined' && pageTitle ? pageTitle + ' — ' : '' %>Veille Élus</title>
+  <link rel="stylesheet" href="/static/style.css?v=<%= ASSET_V %>">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">◉ Veille Élus</a>
+    <nav>
+      <a href="/" class="<%= path === '/' ? 'on' : '' %>">Classement</a>
+      <a href="/compare">Comparer</a>
+      <% if (isAdmin) { %>
+        <a href="/admin" class="<%= path.startsWith('/admin') ? 'on' : '' %>">Admin</a>
+        <form action="/admin/logout" method="post" class="inline"><button class="link">Déconnexion</button></form>
+      <% } else { %>
+        <a href="/admin/login">Admin</a>
+      <% } %>
+    </nav>
+  </header>
+  <main>
