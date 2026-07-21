@@ -11,15 +11,24 @@
 
   <% if (note) { %><div class="demo-banner">🧪 <%= note %></div><% } %>
 
+  <% const nq = network ? '&network='+network : ''; const pq = party ? '&party='+party : ''; %>
   <div class="filters">
-    <a href="/" class="f-all <%= !party ? 'on' : '' %>"><span class="dot dot-all"></span> Tous</a>
+    <a href="/<%= network ? '?network='+network : '' %>" class="f-all <%= !party ? 'on' : '' %>"><span class="dot dot-all"></span> Tous partis</a>
     <% parties.forEach(function(pt){ %>
-      <a href="/?party=<%= encodeURIComponent(pt.short) %>" class="<%= party===pt.short ? 'on' : '' %>"
+      <a href="/?party=<%= encodeURIComponent(pt.short) %><%= nq %>" class="<%= party===pt.short ? 'on' : '' %>"
          style="<%= party===pt.short ? 'background:'+pt.color+';border-color:transparent;color:#fff' : '' %>">
         <%- plogo(pt.short, pt.color, pt.name) %> <span class="muted"><%= pt.n %></span>
       </a>
     <% }) %>
   </div>
+  <div class="filters">
+    <a href="/<%= party ? '?party='+party : '' %>" class="f-all <%= !network ? 'on' : '' %>">Tous réseaux</a>
+    <% ['x','instagram','tiktok','youtube','facebook','twitch'].forEach(function(net){ %>
+      <a href="/?network=<%= net %><%= pq %>" class="netfilter <%= network===net ? 'on' : '' %>"><%- icon(net,15) %> <%= NET_LABEL[net] %></a>
+    <% }) %>
+  </div>
+
+  <input id="q" class="search-box" placeholder="🔍 Rechercher une personnalité dans le classement…" autocomplete="off">
 
   <div class="collectors">
     <% collectors.forEach(function(c){ %>
@@ -39,7 +48,7 @@
     <thead><tr><th>#</th><th>Personnalité</th><th>Parti</th><th>Réseaux</th><th class="num">Abonnés</th><th class="num">Posts/sem.</th><th>Score</th></tr></thead>
     <tbody>
     <% rows.forEach(function(r, i){ %>
-      <tr>
+      <tr data-name="<%= r.display_name %>">
         <td class="rank rank-<%= i+1 %>"><% if (i<3) { %><span class="medal"><%= i+1 %></span><% } else { %><%= i+1 %><% } %></td>
         <td><a class="pname" href="/person/<%= r.person_id %>"><%= r.display_name %></a></td>
         <td><%- plogo(r.party_short, r.party_color, r.party_name) %></td>
@@ -61,5 +70,20 @@
     </tbody>
   </table>
 <% } %>
+
+<script>
+(function(){
+  const q=document.getElementById('q'); if(!q) return;
+  q.addEventListener('input',function(){
+    const v=q.value.toLowerCase().trim();
+    let rank=0;
+    document.querySelectorAll('table.ranking tbody tr').forEach(function(tr){
+      const show=(tr.dataset.name||'').toLowerCase().includes(v);
+      tr.style.display=show?'':'none';
+      if(show){ rank++; const c=tr.querySelector('.rank'); if(c && !c.querySelector('.medal')) c.textContent=rank; }
+    });
+  });
+})();
+</script>
 
 <%- include('partials/foot') %>

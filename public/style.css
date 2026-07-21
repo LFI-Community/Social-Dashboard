@@ -64,6 +64,10 @@ button.link { background:none; border:0; color:var(--mut); cursor:pointer; font:
 .filters a.on { color:#fff; border-color:transparent; }
 .filters a.on.f-all{background:var(--txt);color:var(--bg)} .filters a.on.f-insoumis{background:var(--rouge)}
 .filters a.on.f-allie{background:var(--vert)} .filters a.on.f-adversaire{background:var(--adversaire)}
+.netfilter.on { background:var(--txt); color:var(--bg); border-color:var(--txt); }
+.search-box { width:100%; max-width:440px; margin:10px 0 2px; background:var(--panel); border:1.5px solid var(--line);
+  color:var(--txt); border-radius:12px; padding:11px 16px; font:inherit; font-weight:600; }
+.search-box:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent); }
 .dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
 .dot-insoumis{background:var(--rouge)} .dot-allie{background:var(--vert)} .dot-adversaire{background:#6b7280} .dot-all{background:linear-gradient(90deg,var(--rouge),var(--violet),var(--bleu))}
 
