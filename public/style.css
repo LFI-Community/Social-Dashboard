@@ -193,6 +193,8 @@ button:hover { filter:brightness(1.08); transform:translateY(-1px); }
 .mini.danger:hover { background:#ff8091; color:#fff; }
 .mini-sel { padding:5px 9px; border-radius:8px; font-weight:800; }
 .mini-num { width:120px; padding:6px 10px; border-radius:8px; font-weight:700; font-variant-numeric:tabular-nums; }
+.hedit { display:inline-flex; align-items:center; gap:5px; }
+.mini-handle { width:140px; padding:5px 9px; border-radius:8px; font-weight:700; }
 .lbl { display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--mut); font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
 .lbl input, .lbl select, .lbl textarea { font-weight:600; color:var(--txt); text-transform:none; letter-spacing:normal; font-size:15px; }
 textarea { background:var(--panel); border:1.5px solid var(--line); color:var(--txt); border-radius:10px; padding:10px 13px; font:inherit; resize:vertical; }

@@ -38,7 +38,7 @@ const PEOPLE = [
     ['youtube', 'AntoineLeaument', 90000, 0.3]]],
   ['Louis Boyard', 'insoumis', 'LFI', ['depute', 'Député', 'Val-de-Marne'], false, [
     ['x', 'LouisBoyard', 320000, 4], ['tiktok', 'louisboyard', 1100000, 2.5],
-    ['instagram', 'louisboyard', 380000, 1]]],
+    ['instagram', 'boyardlouis', 380000, 1]]],
   ['Rima Hassan', 'insoumis', 'LFI', ['mep', 'Députée européenne', 'France'], false, [
     ['x', 'RimaHas', 520000, 6], ['instagram', 'rimahassan.rh', 450000, 1.5]]],
   ['Éric Coquerel', 'insoumis', 'LFI', ['depute', 'Député', 'Seine-Saint-Denis'], false, [

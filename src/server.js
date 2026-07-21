@@ -7,6 +7,7 @@ import { db } from './db.js';
 import { collectorConfig } from './collectors/registry.js';
 import { slugify } from './util.js';
 import { recomputeAll } from './scoring.js';
+import { collectAccount } from './collect.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -213,21 +214,29 @@ app.get('/api/compare', (req, res) => {
 });
 
 // Ajout libre d'un compte (protégé). person_id optionnel -> compte standalone.
-app.post('/api/accounts', requireAdmin, (req, res) => {
+// Déclenche la collecte des données (réelle si monid.ai configuré, sinon démo).
+app.post('/api/accounts', requireAdmin, async (req, res) => {
   const { network, handle, account_ref, url, person_id } = req.body || {};
   if (!network || !(account_ref || handle)) return res.status(400).json({ error: 'network + (account_ref ou handle) requis' });
-  const ref = String(account_ref || handle).trim();
+  const h = String(handle || '').replace(/^@/, '').trim();
+  const ref = String(account_ref || (network + ':' + h)).trim();
+  const profileUrl = String(url || '').trim() || defaultProfileUrl(network, h);
   try {
     const info = db.prepare(`INSERT INTO accounts (person_id, network, handle, account_ref, url, is_standalone, added_by)
       VALUES (?,?,?,?,?,?, 'manual')`).run(
-      person_id ? Number(person_id) : null, String(network), String(handle || ''), ref, String(url || ''), person_id ? 0 : 1);
-    recomputeAll(WINDOW);
-    res.json({ ok: true, id: info.lastInsertRowid });
+      person_id ? Number(person_id) : null, String(network), h, ref, profileUrl, person_id ? 0 : 1);
+    const col = await collectAccount(info.lastInsertRowid);
+    res.json({ ok: true, id: info.lastInsertRowid, collect: col });
   } catch (e) {
     if (String(e.message).includes('UNIQUE')) return res.status(409).json({ error: 'compte déjà enregistré' });
     res.status(500).json({ error: e.message });
   }
 });
+
+function defaultProfileUrl(net, h) {
+  return ({ x: `https://x.com/${h}`, instagram: `https://instagram.com/${h}`, tiktok: `https://tiktok.com/@${h}`,
+    youtube: `https://youtube.com/@${h}`, facebook: `https://facebook.com/${h}`, twitch: `https://twitch.tv/${h}` }[net]) || '';
+}
 
 app.delete('/api/accounts/:id', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM accounts WHERE id = ?').run(req.params.id);
@@ -235,9 +244,10 @@ app.delete('/api/accounts/:id', requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
-// Collecte à la demande (Tier C) — implémentée en Phase 3.
-app.post('/api/accounts/:id/refresh', requireAdmin, (req, res) => {
-  res.status(501).json({ error: 'collecteurs pas encore implémentés (Phase 3)' });
+// Collecte/rafraîchissement à la demande.
+app.post('/api/accounts/:id/refresh', requireAdmin, async (req, res) => {
+  const r = await collectAccount(req.params.id);
+  res.status(r.ok ? 200 : 404).json(r);
 });
 
 // ---------- API Admin (outils) ----------
@@ -318,11 +328,13 @@ app.get('/api/accounts', requireAdmin, (req, res) => {
 app.patch('/api/accounts/:id', requireAdmin, (req, res) => {
   const a = db.prepare('SELECT * FROM accounts WHERE id = ?').get(req.params.id);
   if (!a) return res.status(404).json({ error: 'introuvable' });
-  const { tier, followers, person_id } = req.body || {};
-  db.prepare('UPDATE accounts SET tier=?, followers=?, person_id=? WHERE id=?').run(
+  const { tier, followers, person_id, handle, url } = req.body || {};
+  const h = handle != null ? String(handle).replace(/^@/, '').trim() : a.handle;
+  db.prepare('UPDATE accounts SET tier=?, followers=?, person_id=?, handle=?, url=? WHERE id=?').run(
     ['A', 'B', 'C'].includes(tier) ? tier : a.tier,
     followers != null ? Number(followers) : a.followers,
-    person_id !== undefined ? (person_id ? Number(person_id) : null) : a.person_id, a.id);
+    person_id !== undefined ? (person_id ? Number(person_id) : null) : a.person_id,
+    h, url != null ? String(url).trim() : a.url, a.id);
   recomputeAll(WINDOW);
   res.json({ ok: true });
 });

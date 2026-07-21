@@ -118,7 +118,7 @@ async function addPerson(e){e.preventDefault();const f=e.target,b=Object.fromEnt
 
 async function addAccount(e){e.preventDefault();const f=e.target,b=Object.fromEntries(new FormData(f));
   const{ok,j}=await api('/api/accounts',{method:'POST',body:JSON.stringify(b)});
-  if(ok){toast('Compte ajouté #'+j.id);f.reset();document.getElementById('acc-person-id').value='';}else toast(j.error||'Erreur',false);return false;}
+  if(ok){toast('Compte ajouté — données '+(j.collect&&j.collect.mode==='monid'?'récupérées':'de démo générées'));f.reset();document.getElementById('acc-person-id').value='';}else toast(j.error||'Erreur',false);return false;}
 
 document.getElementById('recompute').addEventListener('click',async()=>{const{ok,j}=await api('/api/recompute',{method:'POST'});
   toast(ok?('Scores recalculés ('+j.accounts+' comptes)'):'Erreur',ok);if(ok)setTimeout(()=>location.reload(),800);});
