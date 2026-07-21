@@ -235,7 +235,8 @@ app.post('/api/accounts', requireAdmin, async (req, res) => {
 
 function defaultProfileUrl(net, h) {
   return ({ x: `https://x.com/${h}`, instagram: `https://instagram.com/${h}`, tiktok: `https://tiktok.com/@${h}`,
-    youtube: `https://youtube.com/@${h}`, facebook: `https://facebook.com/${h}`, twitch: `https://twitch.tv/${h}` }[net]) || '';
+    youtube: h.startsWith('UC') ? `https://youtube.com/channel/${h}` : `https://youtube.com/@${h}`,
+    facebook: `https://facebook.com/${h}`, twitch: `https://twitch.tv/${h}` }[net]) || '';
 }
 
 app.delete('/api/accounts/:id', requireAdmin, (req, res) => {

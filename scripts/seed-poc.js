@@ -7,7 +7,7 @@
 // Usage : node scripts/seed-poc.js
 import { db } from '../src/db.js';
 import { recomputeAll } from '../src/scoring.js';
-import { slugify, mandateWeight, postUrl } from '../src/util.js';
+import { slugify, mandateWeight } from '../src/util.js';
 
 // --- Partis (sigle, couleur) ---
 const PARTIES = [
@@ -27,32 +27,32 @@ const PARTIES = [
 const PEOPLE = [
   // ---------- INSOUMIS ----------
   ['Jean-Luc Mélenchon', 'insoumis', 'LFI', null, true, [
-    ['x', 'JLMelenchon', 2600000, 6], ['tiktok', 'jlmelenchon', 2100000, 2],
-    ['instagram', 'jlmelenchon', 1000000, 1.5], ['youtube', 'JLMelenchon', 820000, 0.4]]],
+    ['x', 'JLMelenchon', 2600000, 6], ['tiktok', 'melenchonjl', 2100000, 2],
+    ['instagram', 'jlmelenchon', 1000000, 1.5], ['youtube', 'UCk-_PEY3iC6DIGJKuoEe9bw', 820000, 0.4]]],
   ['Mathilde Panot', 'insoumis', 'LFI', ['depute', 'Députée', 'Val-de-Marne'], false, [
     ['x', 'MathildePanot', 430000, 5], ['instagram', 'mathildepanot', 210000, 1]]],
   ['Manuel Bompard', 'insoumis', 'LFI', ['depute', 'Député', 'Bouches-du-Rhône'], false, [
     ['x', 'mbompard', 205000, 4]]],
   ['Antoine Léaument', 'insoumis', 'LFI', ['depute', 'Député', 'Essonne'], false, [
-    ['x', 'LeaumentAntoine', 155000, 5], ['tiktok', 'antoineleaument', 260000, 1.5],
-    ['youtube', 'AntoineLeaument', 90000, 0.3]]],
+    ['x', 'ALeaument', 155000, 5], ['tiktok', 'antoineleaument', 260000, 1.5],
+    ['youtube', 'UC3q3FLPQtuWWv1uTkTfpEtw', 90000, 0.3]]],
   ['Louis Boyard', 'insoumis', 'LFI', ['depute', 'Député', 'Val-de-Marne'], false, [
-    ['x', 'LouisBoyard', 320000, 4], ['tiktok', 'louisboyard', 1100000, 2.5],
+    ['x', 'l_boyard', 320000, 4], ['tiktok', 'louisboyard', 1100000, 2.5],
     ['instagram', 'boyardlouis', 380000, 1]]],
   ['Rima Hassan', 'insoumis', 'LFI', ['mep', 'Députée européenne', 'France'], false, [
-    ['x', 'RimaHas', 520000, 6], ['instagram', 'rimahassan.rh', 450000, 1.5]]],
+    ['x', 'RimaHas', 520000, 6], ['instagram', 'rimamobarak', 450000, 1.5]]],
   ['Éric Coquerel', 'insoumis', 'LFI', ['depute', 'Député', 'Seine-Saint-Denis'], false, [
     ['x', 'ericcoquerel', 120000, 3]]],
   ['Clémence Guetté', 'insoumis', 'LFI', ['depute', 'Députée', 'Val-de-Marne'], false, [
-    ['x', 'ClemenceGuette', 110000, 3]]],
+    ['x', 'Clemence_Guette', 110000, 3]]],
   ['Thomas Portes', 'insoumis', 'LFI', ['depute', 'Député', 'Seine-Saint-Denis'], false, [
-    ['x', 'ThomasPortes', 130000, 4], ['tiktok', 'thomasportes93', 150000, 1]]],
+    ['x', 'Portes_Thomas', 130000, 4], ['tiktok', 'thomasportes93', 150000, 1]]],
   ['Danièle Obono', 'insoumis', 'LFI', ['depute', 'Députée', 'Paris'], false, [
     ['x', 'Deputee_Obono', 145000, 3]]],
   ['Aurélie Trouvé', 'insoumis', 'LFI', ['depute', 'Députée', 'Seine-Saint-Denis'], false, [
-    ['x', 'AurelieTrouve', 60000, 2]]],
+    ['x', 'trouveaurelie', 60000, 2]]],
   ['Sophia Chikirou', 'insoumis', 'LFI', ['depute', 'Députée', 'Paris'], false, [
-    ['x', 'Sophia_Chikirou', 95000, 3]]],
+    ['x', 'SoChik75', 95000, 3]]],
 
   // ---------- ALLIÉS (gauche / NFP) ----------
   ['Olivier Faure', 'allie', 'PS', ['depute', 'Député', 'Seine-et-Marne'], false, [
@@ -62,13 +62,13 @@ const PEOPLE = [
   ['Fabien Roussel', 'allie', 'PCF', null, true, [
     ['x', 'Fabien_Roussel', 160000, 2.5]]],
   ['François Ruffin', 'allie', 'PS', ['depute', 'Député', 'Somme'], false, [
-    ['x', 'Francois_Ruffin', 410000, 2], ['instagram', 'francois.ruffin', 180000, 0.7]]],
+    ['x', 'Francois_Ruffin', 410000, 2], ['instagram', 'francois_ruffin', 180000, 0.7]]],
 
   // ---------- ADVERSAIRES ----------
   ['Marine Le Pen', 'adversaire', 'RN', ['depute', 'Députée', 'Pas-de-Calais'], false, [
-    ['x', 'MLP_officiel', 1800000, 2], ['tiktok', 'marine_lepen_officiel', 700000, 0.8]]],
+    ['x', 'MLP_officiel', 1800000, 2], ['tiktok', 'mlp.officiel', 700000, 0.8]]],
   ['Jordan Bardella', 'adversaire', 'RN', ['mep', 'Député européen', 'France'], false, [
-    ['x', 'J_Bardella', 1250000, 3], ['tiktok', 'jordanbardella_officiel', 1600000, 1.5],
+    ['x', 'J_Bardella', 1250000, 3], ['tiktok', 'jordanbardella', 1600000, 1.5],
     ['instagram', 'jordanbardella', 980000, 1.2]]],
   ['Gabriel Attal', 'adversaire', 'RE', ['depute', 'Député', 'Hauts-de-Seine'], false, [
     ['x', 'GabrielAttal', 1050000, 2.5], ['instagram', 'gabrielattal', 320000, 0.8]]],
@@ -81,7 +81,7 @@ const PEOPLE = [
   ['Édouard Philippe', 'adversaire', 'HOR', null, true, [
     ['x', 'EPhilippePM', 700000, 1]]],
   ['Éric Zemmour', 'adversaire', 'REC', null, true, [
-    ['x', 'ZemmourEric', 1400000, 3], ['tiktok', 'ericzemmour', 600000, 1]]],
+    ['x', 'ZemmourEric', 1400000, 3], ['tiktok', 'zemmour_eric', 600000, 1]]],
 ];
 
 // Légendes de démonstration pour les hot posts (contenu affiché en entier).
@@ -136,7 +136,8 @@ function seed() {
 
   const urlFor = (net, h) => ({
     x: `https://x.com/${h}`, instagram: `https://instagram.com/${h}`,
-    tiktok: `https://tiktok.com/@${h}`, youtube: `https://youtube.com/@${h}`,
+    tiktok: `https://tiktok.com/@${h}`,
+    youtube: h.startsWith('UC') ? `https://youtube.com/channel/${h}` : `https://youtube.com/@${h}`,
     facebook: `https://facebook.com/${h}`, twitch: `https://twitch.tv/${h}`,
   }[net] || '');
 
@@ -177,8 +178,9 @@ function seed() {
           const views = net === 'x' || net === 'tiktok' || net === 'youtube'
             ? Math.round(engagement * (12 + rand() * 30)) : 0;
           const caption = CAPTIONS[Math.floor(rand() * CAPTIONS.length)];
+          // Démo : lien vers le profil (fonctionnel). Les vrais permaliens de posts viennent de la collecte réelle.
           insPost.run(aid, `${net}-${handle}-${k}`, dt.toISOString(),
-            postUrl(net, handle, Math.floor(rand() * 1e9)), Math.round(engagement * 0.8), views, engagement, caption);
+            urlFor(net, handle), Math.round(engagement * 0.8), views, engagement, caption);
         }
       }
     }
