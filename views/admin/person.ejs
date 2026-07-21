@@ -1,0 +1,115 @@
+<%- include('../partials/head', { pageTitle: 'Éditer — ' + person.display_name }) %>
+
+<a class="back" href="/admin">← Console admin</a>
+<h1 class="title">Éditer : <%= person.display_name %> <span id="toast" class="muted" style="font-size:14px"></span></h1>
+
+<div class="admin-grid">
+  <!-- Infos personne -->
+  <section class="card admin-card">
+    <h2>Informations</h2>
+    <form class="stack" id="pform">
+      <label class="lbl">Nom affiché
+        <input name="display_name" value="<%= person.display_name %>" required>
+      </label>
+      <label class="lbl">Parti
+        <select name="party_id">
+          <option value="">— Sans parti —</option>
+          <% parties.forEach(function(pt){ %>
+            <option value="<%= pt.id %>" <%= String(currentPartyId)===String(pt.id)?'selected':'' %>><%= pt.name %> (<%= pt.short %>)</option>
+          <% }) %>
+        </select>
+      </label>
+      <label class="check"><input type="checkbox" name="is_public_figure" <%= person.is_public_figure?'checked':'' %>> Personnalité hors mandat</label>
+      <label class="lbl">Notes
+        <textarea name="notes" rows="2" placeholder="Notes internes…"><%= person.notes || '' %></textarea>
+      </label>
+      <div class="actions">
+        <button type="submit">💾 Enregistrer</button>
+        <a class="btn-ghost" href="/person/<%= person.id %>" target="_blank">Voir la fiche</a>
+      </div>
+    </form>
+  </section>
+
+  <!-- Stats agrégées -->
+  <section class="card admin-card">
+    <h2>Score agrégé (personne)</h2>
+    <% if (pstat) { %>
+      <div class="stats" style="grid-template-columns:1fr 1fr">
+        <div class="stat"><span class="n"><%= fmt(pstat.followers) %></span><span class="l">abonnés cumulés</span></div>
+        <div class="stat"><span class="n"><%= pstat.posts_per_week.toFixed(0) %></span><span class="l">posts/sem.</span></div>
+        <div class="stat"><span class="n"><%= pstat.networks %></span><span class="l">réseaux</span></div>
+        <div class="stat"><span class="n"><%= pstat.watch_score.toFixed(2) %></span><span class="l">watch score</span></div>
+      </div>
+    <% } else { %><p class="muted">Pas encore de score — ajoute un compte puis recalcule.</p><% } %>
+    <div class="actions" style="margin-top:12px">
+      <button class="danger-btn" id="delperson">🗑 Supprimer la personnalité</button>
+    </div>
+  </section>
+</div>
+
+<!-- Comptes -->
+<section>
+  <h2>Comptes rattachés (<%= accounts.length %>)</h2>
+  <table class="ranking" id="acc-table">
+    <thead><tr><th>Réseau</th><th>Handle</th><th class="num">Abonnés</th><th>Tier</th><th class="num">Score</th><th></th></tr></thead>
+    <tbody>
+    <% accounts.forEach(function(a){ %>
+      <tr>
+        <td><span class="net"><%- icon(a.network,20) %><span class="lab"><%= NET_LABEL[a.network] %></span></span></td>
+        <td><a href="<%= a.url %>" target="_blank" rel="noopener">@<%= a.handle %></a></td>
+        <td class="num"><input class="mini-num" data-foll="<%= a.id %>" type="number" value="<%= a.followers %>"></td>
+        <td><select class="mini-sel" data-tier="<%= a.id %>"><% ['A','B','C'].forEach(function(t){ %><option <%= a.tier===t?'selected':'' %>><%= t %></option><% }) %></select></td>
+        <td class="num"><strong><%= a.watch_score!=null?a.watch_score.toFixed(2):'—' %></strong></td>
+        <td><button class="mini danger" data-del="<%= a.id %>">✕</button></td>
+      </tr>
+    <% }) %>
+    </tbody>
+  </table>
+
+  <h2 style="margin-top:20px">Ajouter un compte à <%= person.display_name %></h2>
+  <form class="add-account" id="accform">
+    <select name="network" required>
+      <option value="x">X</option><option value="instagram">Instagram</option>
+      <option value="facebook">Facebook</option><option value="tiktok">TikTok</option>
+      <option value="youtube">YouTube</option><option value="twitch">Twitch</option>
+    </select>
+    <input name="handle" placeholder="handle (sans @)" required>
+    <input name="url" placeholder="URL du profil">
+    <input type="hidden" name="person_id" value="<%= person.id %>">
+    <button type="submit">Ajouter</button>
+  </form>
+</section>
+
+<script>
+const PID = <%= person.id %>;
+const toast=(m,ok=true)=>{const t=document.getElementById('toast');t.textContent=m;t.style.color=ok?'var(--vert)':'#ff8091';setTimeout(()=>t.textContent='',3500);};
+async function api(url,opt={}){const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opt});const j=await r.json().catch(()=>({}));return{ok:r.ok,j};}
+
+document.getElementById('pform').addEventListener('submit',async e=>{e.preventDefault();
+  const f=e.target,b=Object.fromEntries(new FormData(f));b.is_public_figure=f.is_public_figure.checked?1:0;
+  const{ok,j}=await api('/api/persons/'+PID,{method:'PATCH',body:JSON.stringify(b)});
+  toast(ok?'Enregistré ✓':(j.error||'Erreur'),ok);if(ok)setTimeout(()=>location.reload(),700);});
+
+document.getElementById('delperson').addEventListener('click',async()=>{
+  if(!confirm('Supprimer définitivement cette personnalité et ses comptes ?'))return;
+  const{ok}=await api('/api/persons/'+PID,{method:'DELETE'});
+  if(ok){toast('Supprimée');setTimeout(()=>location.href='/admin',600);}});
+
+document.getElementById('accform').addEventListener('submit',async e=>{e.preventDefault();
+  const b=Object.fromEntries(new FormData(e.target));
+  const{ok,j}=await api('/api/accounts',{method:'POST',body:JSON.stringify(b)});
+  toast(ok?'Compte ajouté':(j.error||'Erreur'),ok);if(ok)setTimeout(()=>location.reload(),700);});
+
+document.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',async()=>{
+  if(!confirm('Supprimer ce compte ?'))return;const{ok}=await api('/api/accounts/'+b.dataset.del,{method:'DELETE'});
+  if(ok){b.closest('tr').remove();toast('Compte supprimé');}}));
+
+document.querySelectorAll('[data-tier]').forEach(s=>s.addEventListener('change',async()=>{
+  const{ok}=await api('/api/accounts/'+s.dataset.tier,{method:'PATCH',body:JSON.stringify({tier:s.value})});toast(ok?'Tier mis à jour':'Erreur',ok);}));
+
+document.querySelectorAll('[data-foll]').forEach(i=>i.addEventListener('change',async()=>{
+  const{ok}=await api('/api/accounts/'+i.dataset.foll,{method:'PATCH',body:JSON.stringify({followers:Number(i.value)})});
+  toast(ok?'Abonnés mis à jour (score recalculé)':'Erreur',ok);}));
+</script>
+
+<%- include('../partials/foot') %>

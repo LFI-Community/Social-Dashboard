@@ -71,9 +71,41 @@ export function computeAccountStats(accountId, windowDays = 90) {
   return { accountId, postsPerWeek, activity, watch, quality, reach, followers };
 }
 
+// Agrégat par PERSONNE (l'app raisonne par personnalité, pas par compte).
+export function computePersonStats(personId, windowDays = 90) {
+  const agg = db.prepare(`
+    SELECT COALESCE(SUM(a.followers),0) AS followers,
+           COALESCE(SUM(s.posts_per_week),0) AS ppw,
+           COALESCE(MAX(s.quality),0) AS quality,
+           COUNT(DISTINCT a.network) AS nets,
+           MAX(s.last_post_at) AS last_post
+    FROM accounts a LEFT JOIN account_stats s ON s.account_id = a.id AND s.window_days = ?
+    WHERE a.person_id = ? AND a.active = 1
+  `).get(windowDays, personId);
+
+  const reach = logNorm(agg.followers, 8_000_000);   // reach cumulé tous réseaux
+  const quantity = logNorm(agg.ppw, 120);            // posts/sem cumulés
+  const quality = clamp01(agg.quality || 0);         // meilleure qualité d'engagement
+  const activity = W.quantity * quantity + W.quality * quality + W.reach * reach;
+  const watch = activity * personWeight(personId);
+
+  db.prepare(
+    `INSERT INTO person_stats (person_id, followers, posts_per_week, activity_score, watch_score, networks, last_post_at, computed_at)
+     VALUES (?,?,?,?,?,?,?, datetime('now'))
+     ON CONFLICT(person_id) DO UPDATE SET followers=excluded.followers, posts_per_week=excluded.posts_per_week,
+       activity_score=excluded.activity_score, watch_score=excluded.watch_score, networks=excluded.networks,
+       last_post_at=excluded.last_post_at, computed_at=excluded.computed_at`
+  ).run(personId, agg.followers, agg.ppw, activity, watch, agg.nets || 0, agg.last_post || null);
+  return { personId, followers: agg.followers, watch };
+}
+
 export function recomputeAll(windowDays = 90) {
   const ids = db.prepare('SELECT id FROM accounts WHERE active = 1').all().map((r) => r.id);
-  const tx = db.transaction(() => ids.forEach((id) => computeAccountStats(id, windowDays)));
+  const personIds = db.prepare('SELECT id FROM persons').all().map((r) => r.id);
+  const tx = db.transaction(() => {
+    ids.forEach((id) => computeAccountStats(id, windowDays));
+    personIds.forEach((id) => computePersonStats(id, windowDays));
+  });
   tx();
   return ids.length;
 }

@@ -1,9 +1,8 @@
 <%- include('../partials/head', { pageTitle: 'Admin' }) %>
 
 <h1 class="title">Console d'administration</h1>
-<p class="sub muted">Gérer la watchlist, les collecteurs et le scoring. <span id="toast" class="muted"></span></p>
+<p class="sub muted">Gérer les personnalités, la watchlist, les collecteurs et le scoring. <span id="toast" class="muted"></span></p>
 
-<!-- Vue d'ensemble -->
 <div class="stats">
   <div class="stat"><span class="n"><%= stats.persons.toLocaleString('fr-FR') %></span><span class="l">personnalités</span></div>
   <div class="stat"><span class="n"><%= stats.accounts.toLocaleString('fr-FR') %></span><span class="l">comptes</span></div>
@@ -12,7 +11,6 @@
 </div>
 
 <div class="admin-grid">
-  <!-- Répartition par réseau -->
   <section class="card admin-card">
     <h2>Comptes par réseau</h2>
     <ul class="breakdown">
@@ -24,7 +22,6 @@
     </ul>
   </section>
 
-  <!-- Répartition par parti -->
   <section class="card admin-card">
     <h2>Personnalités par parti</h2>
     <ul class="breakdown">
@@ -33,15 +30,8 @@
           <span class="eng num" style="margin-left:auto"><%= r.n %></span></li>
       <% }) %>
     </ul>
-    <h2 style="margin-top:16px">Tiers de collecte</h2>
-    <ul class="breakdown">
-      <% stats.byTier.forEach(function(r){ %>
-        <li><span class="chip">Tier <%= r.tier %></span><span class="eng num" style="margin-left:auto"><%= r.n %></span></li>
-      <% }) %>
-    </ul>
   </section>
 
-  <!-- Collecteurs -->
   <section class="card admin-card">
     <h2>Collecteurs</h2>
     <ul class="breakdown">
@@ -53,20 +43,16 @@
         </li>
       <% }) %>
     </ul>
-    <p class="muted" style="font-size:12.5px;margin-top:10px">⚠ Les payants (monid.ai) restent OFF tant que la clé n'est pas configurée + <code>ENABLE_PAID=1</code>.</p>
+    <p class="muted" style="font-size:12.5px;margin-top:10px">⚠ Payants (monid.ai) OFF tant que la clé n'est pas configurée + <code>ENABLE_PAID=1</code>.</p>
   </section>
 
-  <!-- Actions -->
   <section class="card admin-card">
-    <h2>Actions</h2>
-    <div class="actions">
-      <button id="recompute">↻ Recalculer les scores</button>
-      <a class="btn-ghost" href="/" >Voir le classement</a>
-    </div>
-    <p class="muted" style="font-size:12.5px;margin-top:10px">Le recalcul régénère <code>account_stats</code> (posts/sem, qualité, reach, watch_score) pour tous les comptes actifs.</p>
+    <h2>Actions & scoring</h2>
+    <div class="actions"><button id="recompute">↻ Recalculer les scores</button><a class="btn-ghost" href="/">Voir le classement</a></div>
+    <h2 style="margin-top:18px">Tiers de collecte</h2>
+    <ul class="breakdown"><% stats.byTier.forEach(function(r){ %><li><span class="chip">Tier <%= r.tier %></span><span class="eng num" style="margin-left:auto"><%= r.n %></span></li><% }) %></ul>
   </section>
 
-  <!-- Ajouter une personnalité -->
   <section class="card admin-card">
     <h2>Ajouter une personnalité</h2>
     <form class="stack" onsubmit="return addPerson(event)">
@@ -82,7 +68,6 @@
     </form>
   </section>
 
-  <!-- Ajouter un compte -->
   <section class="card admin-card">
     <h2>Ajouter un compte</h2>
     <form class="stack" onsubmit="return addAccount(event)">
@@ -103,26 +88,20 @@
   </section>
 </div>
 
-<!-- Gestion des comptes -->
 <section>
-  <h2>Comptes suivis (top 60 par score)</h2>
-  <input id="acc-filter" placeholder="Filtrer par nom / handle…" style="margin:6px 0 12px;width:100%;max-width:340px">
-  <table class="ranking" id="acc-table">
-    <thead><tr><th>Personnalité</th><th>Parti</th><th>Réseau</th><th class="num">Abonnés</th><th>Tier</th><th class="num">Score</th><th></th></tr></thead>
+  <h2>Personnalités (<%= persons.length %>) — cliquer pour éditer</h2>
+  <input id="p-filter" placeholder="Filtrer par nom…" style="margin:6px 0 12px;width:100%;max-width:340px">
+  <table class="ranking" id="p-table">
+    <thead><tr><th>Personnalité</th><th>Parti</th><th class="num">Réseaux</th><th class="num">Abonnés</th><th class="num">Score</th><th></th></tr></thead>
     <tbody>
-    <% accounts.forEach(function(a){ %>
-      <tr data-row="<%= (a.display_name||'')+' @'+a.handle %>">
-        <td><% if (a.person_id){ %><a class="pname" href="/person/<%= a.person_id %>"><%= a.display_name %></a><% } else { %><em>standalone</em><% } %></td>
-        <td><%- plogo(a.party_short, a.party_color, a.party_name) %></td>
-        <td><span class="net"><%- icon(a.network,18) %></span> <span class="muted">@<%= a.handle %></span></td>
-        <td class="num"><%= fmt(a.followers) %></td>
-        <td>
-          <select class="mini-sel" data-tier="<%= a.id %>">
-            <% ['A','B','C'].forEach(function(t){ %><option value="<%= t %>" <%= a.tier===t?'selected':'' %>><%= t %></option><% }) %>
-          </select>
-        </td>
-        <td class="num"><strong><%= a.watch_score!=null?a.watch_score.toFixed(2):'—' %></strong></td>
-        <td><button class="mini danger" data-del="<%= a.id %>">✕</button></td>
+    <% persons.forEach(function(p){ %>
+      <tr data-row="<%= p.display_name %>">
+        <td><a class="pname" href="/admin/person/<%= p.id %>"><%= p.display_name %></a><% if (p.is_public_figure){ %> <span class="chip">hors mandat</span><% } %></td>
+        <td><%- plogo(p.party_short, p.party_color, p.party_name) %></td>
+        <td class="num"><%= p.networks || 0 %></td>
+        <td class="num"><%= fmt(p.followers || 0) %></td>
+        <td class="num"><strong><%= p.watch_score != null ? p.watch_score.toFixed(2) : '—' %></strong></td>
+        <td><a class="mini on" href="/admin/person/<%= p.id %>">Éditer</a></td>
       </tr>
     <% }) %>
     </tbody>
@@ -130,50 +109,31 @@
 </section>
 
 <script>
-const toast = (m,ok=true)=>{ const t=document.getElementById('toast'); t.textContent=m; t.style.color=ok?'var(--vert)':'#ff8091'; setTimeout(()=>t.textContent='',3500); };
-async function api(url,opt={}){ const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opt}); const j=await r.json().catch(()=>({})); return {ok:r.ok,j,status:r.status}; }
+const toast=(m,ok=true)=>{const t=document.getElementById('toast');t.textContent=m;t.style.color=ok?'var(--vert)':'#ff8091';setTimeout(()=>t.textContent='',3500);};
+async function api(url,opt={}){const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opt});const j=await r.json().catch(()=>({}));return{ok:r.ok,j};}
 
-async function addPerson(e){ e.preventDefault();
-  const f=e.target, b=Object.fromEntries(new FormData(f)); b.is_public_figure=f.is_public_figure.checked?1:0;
-  const {ok,j}=await api('/api/persons',{method:'POST',body:JSON.stringify(b)});
-  if(ok){ toast('Personnalité créée #'+j.id); f.reset(); } else toast(j.error||'Erreur',false); return false; }
+async function addPerson(e){e.preventDefault();const f=e.target,b=Object.fromEntries(new FormData(f));b.is_public_figure=f.is_public_figure.checked?1:0;
+  const{ok,j}=await api('/api/persons',{method:'POST',body:JSON.stringify(b)});
+  if(ok){toast('Créée #'+j.id);setTimeout(()=>location.reload(),700);}else toast(j.error||'Erreur',false);return false;}
 
-async function addAccount(e){ e.preventDefault();
-  const f=e.target, b=Object.fromEntries(new FormData(f));
-  const {ok,j}=await api('/api/accounts',{method:'POST',body:JSON.stringify(b)});
-  if(ok){ toast('Compte ajouté #'+j.id); f.reset(); document.getElementById('acc-person-id').value=''; } else toast(j.error||('Erreur '+ (j.error||'')),false); return false; }
+async function addAccount(e){e.preventDefault();const f=e.target,b=Object.fromEntries(new FormData(f));
+  const{ok,j}=await api('/api/accounts',{method:'POST',body:JSON.stringify(b)});
+  if(ok){toast('Compte ajouté #'+j.id);f.reset();document.getElementById('acc-person-id').value='';}else toast(j.error||'Erreur',false);return false;}
 
-document.getElementById('recompute').addEventListener('click', async ()=>{
-  const {ok,j}=await api('/api/recompute',{method:'POST'});
-  toast(ok?('Scores recalculés ('+j.accounts+' comptes)'):'Erreur', ok); if(ok) setTimeout(()=>location.reload(),800); });
+document.getElementById('recompute').addEventListener('click',async()=>{const{ok,j}=await api('/api/recompute',{method:'POST'});
+  toast(ok?('Scores recalculés ('+j.accounts+' comptes)'):'Erreur',ok);if(ok)setTimeout(()=>location.reload(),800);});
 
-document.querySelectorAll('[data-toggle]').forEach(btn=>btn.addEventListener('click', async ()=>{
-  const {ok,j}=await api('/api/collectors/'+btn.dataset.toggle+'/toggle',{method:'POST'});
-  if(ok){ btn.textContent=j.enabled?'ON':'OFF'; btn.className='mini '+(j.enabled?'on':'off'); toast('Collecteur '+btn.dataset.toggle+' '+(j.enabled?'activé':'désactivé')); } }));
+document.querySelectorAll('[data-toggle]').forEach(btn=>btn.addEventListener('click',async()=>{
+  const{ok,j}=await api('/api/collectors/'+btn.dataset.toggle+'/toggle',{method:'POST'});
+  if(ok){btn.textContent=j.enabled?'ON':'OFF';btn.className='mini '+(j.enabled?'on':'off');toast('Collecteur '+btn.dataset.toggle+' '+(j.enabled?'activé':'désactivé'));}}));
 
-document.querySelectorAll('[data-del]').forEach(btn=>btn.addEventListener('click', async ()=>{
-  if(!confirm('Supprimer ce compte ?')) return;
-  const {ok}=await api('/api/accounts/'+btn.dataset.del,{method:'DELETE'});
-  if(ok){ btn.closest('tr').remove(); toast('Compte supprimé'); } }));
+document.getElementById('p-filter').addEventListener('input',e=>{const q=e.target.value.toLowerCase();
+  document.querySelectorAll('#p-table tbody tr').forEach(tr=>{tr.style.display=tr.dataset.row.toLowerCase().includes(q)?'':'none';});});
 
-document.querySelectorAll('[data-tier]').forEach(sel=>sel.addEventListener('change', async ()=>{
-  const {ok}=await api('/api/accounts/'+sel.dataset.tier,{method:'PATCH',body:JSON.stringify({tier:sel.value})});
-  toast(ok?'Tier mis à jour':'Erreur', ok); }));
-
-// Filtre table
-document.getElementById('acc-filter').addEventListener('input', e=>{
-  const q=e.target.value.toLowerCase();
-  document.querySelectorAll('#acc-table tbody tr').forEach(tr=>{
-    tr.style.display = tr.dataset.row.toLowerCase().includes(q)?'':'none'; }); });
-
-// Recherche personne pour rattacher un compte
-const ps=document.getElementById('acc-person-search'), pr=document.getElementById('acc-person-results'), pid=document.getElementById('acc-person-id');
-let pt; ps.addEventListener('input', ()=>{ clearTimeout(pt); pt=setTimeout(async ()=>{
-  const q=ps.value.trim(); if(!q){ pr.innerHTML=''; pid.value=''; return; }
-  const {j}=await api('/api/persons?q='+encodeURIComponent(q));
-  pr.innerHTML=(j||[]).slice(0,6).map(p=>'<a class="chip" data-pid="'+p.id+'">'+p.display_name+'</a>').join(''); },200); });
-pr.addEventListener('click', e=>{ const a=e.target.closest('[data-pid]'); if(!a) return;
-  pid.value=a.dataset.pid; ps.value=a.textContent; pr.innerHTML=''; });
+const ps=document.getElementById('acc-person-search'),pr=document.getElementById('acc-person-results'),pid=document.getElementById('acc-person-id');
+let pt;ps.addEventListener('input',()=>{clearTimeout(pt);pt=setTimeout(async()=>{const q=ps.value.trim();if(!q){pr.innerHTML='';pid.value='';return;}
+  const{j}=await api('/api/persons?q='+encodeURIComponent(q));pr.innerHTML=(j||[]).slice(0,6).map(p=>'<a class="chip" data-pid="'+p.id+'">'+p.display_name+'</a>').join('');},200);});
+pr.addEventListener('click',e=>{const a=e.target.closest('[data-pid]');if(!a)return;pid.value=a.dataset.pid;ps.value=a.textContent;pr.innerHTML='';});
 </script>
 
 <%- include('../partials/foot') %>

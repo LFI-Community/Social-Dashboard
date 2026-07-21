@@ -98,20 +98,24 @@ const WINDOW = Number(db.prepare("SELECT value FROM settings WHERE key='default_
 const rankingStmt = db.prepare(`
   SELECT p.id AS person_id, p.display_name, p.slug, p.is_public_figure,
          pa.short AS party_short, pa.color AS party_color, pa.name AS party_name,
-         a.id AS account_id, a.network, a.handle, a.followers,
-         s.posts_per_week, s.watch_score, s.last_post_at
-  FROM account_stats s
-  JOIN accounts a ON a.id = s.account_id
-  LEFT JOIN persons p ON p.id = a.person_id
+         ps.followers, ps.posts_per_week, ps.watch_score, ps.networks, ps.last_post_at
+  FROM person_stats ps
+  JOIN persons p ON p.id = ps.person_id
   LEFT JOIN person_parties pp ON pp.person_id = p.id AND pp.is_current = 1
   LEFT JOIN parties pa ON pa.id = pp.party_id
-  WHERE s.window_days = ? AND (?='' OR pa.short = ?) AND (?='' OR a.network = ?)
-  ORDER BY s.watch_score DESC
+  WHERE (?='' OR pa.short = ?)
+    AND (?='' OR EXISTS (SELECT 1 FROM accounts a WHERE a.person_id = p.id AND a.network = ?))
+  ORDER BY ps.watch_score DESC
   LIMIT ?
 `);
+const personNetsStmt = db.prepare(
+  'SELECT network, handle, url, followers FROM accounts WHERE person_id = ? AND active = 1 ORDER BY followers DESC'
+);
 
 function ranking(limit = 100, party = '', network = '') {
-  return rankingStmt.all(WINDOW, party, party, network, network, limit);
+  const rows = rankingStmt.all(party, party, network, network, limit);
+  for (const r of rows) r.nets = personNetsStmt.all(r.person_id);
+  return rows;
 }
 
 // Partis présents (pour les filtres) — triés par nb de comptes.
@@ -217,6 +221,7 @@ app.post('/api/accounts', requireAdmin, (req, res) => {
     const info = db.prepare(`INSERT INTO accounts (person_id, network, handle, account_ref, url, is_standalone, added_by)
       VALUES (?,?,?,?,?,?, 'manual')`).run(
       person_id ? Number(person_id) : null, String(network), String(handle || ''), ref, String(url || ''), person_id ? 0 : 1);
+    recomputeAll(WINDOW);
     res.json({ ok: true, id: info.lastInsertRowid });
   } catch (e) {
     if (String(e.message).includes('UNIQUE')) return res.status(409).json({ error: 'compte déjà enregistré' });
@@ -226,6 +231,7 @@ app.post('/api/accounts', requireAdmin, (req, res) => {
 
 app.delete('/api/accounts/:id', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM accounts WHERE id = ?').run(req.params.id);
+  recomputeAll(WINDOW);
   res.json({ ok: true });
 });
 
@@ -264,18 +270,38 @@ app.post('/api/persons', requireAdmin, (req, res) => {
 });
 
 app.patch('/api/persons/:id', requireAdmin, (req, res) => {
-  const { camp, display_name, notes } = req.body || {};
+  const { display_name, is_public_figure, party_id, notes } = req.body || {};
   const p = db.prepare('SELECT * FROM persons WHERE id = ?').get(req.params.id);
   if (!p) return res.status(404).json({ error: 'introuvable' });
-  db.prepare('UPDATE persons SET camp=?, display_name=?, notes=?, updated_at=datetime(\'now\') WHERE id=?')
-    .run(['insoumis', 'allie', 'adversaire', 'autre'].includes(camp) ? camp : p.camp,
-      display_name || p.display_name, notes ?? p.notes, p.id);
+  db.prepare("UPDATE persons SET display_name=?, is_public_figure=?, notes=?, updated_at=datetime('now') WHERE id=?")
+    .run(display_name || p.display_name,
+      is_public_figure != null ? (is_public_figure ? 1 : 0) : p.is_public_figure,
+      notes ?? p.notes, p.id);
+  if (party_id !== undefined) {
+    db.prepare('DELETE FROM person_parties WHERE person_id = ?').run(p.id);
+    if (party_id) db.prepare('INSERT OR IGNORE INTO person_parties (person_id, party_id, is_current) VALUES (?,?,1)').run(p.id, Number(party_id));
+  }
+  recomputeAll(WINDOW);
   res.json({ ok: true });
 });
 
 app.delete('/api/persons/:id', requireAdmin, (req, res) => {
   db.prepare('DELETE FROM persons WHERE id = ?').run(req.params.id);
   res.json({ ok: true });
+});
+
+// Page d'édition d'une personnalité
+app.get('/admin/person/:id', requireAdmin, (req, res) => {
+  const person = db.prepare('SELECT * FROM persons WHERE id = ?').get(req.params.id);
+  if (!person) return res.status(404).render('404');
+  const accounts = db.prepare(`
+    SELECT a.*, s.posts_per_week, s.watch_score FROM accounts a
+    LEFT JOIN account_stats s ON s.account_id = a.id AND s.window_days = ?
+    WHERE a.person_id = ? ORDER BY a.followers DESC`).all(WINDOW, person.id);
+  const currentParty = db.prepare('SELECT party_id FROM person_parties WHERE person_id = ? AND is_current = 1').get(person.id);
+  const parties = db.prepare('SELECT id, short, name, color FROM parties ORDER BY name').all();
+  const pstat = db.prepare('SELECT * FROM person_stats WHERE person_id = ?').get(person.id);
+  res.render('admin/person', { person, accounts, parties, currentPartyId: currentParty?.party_id || '', pstat });
 });
 
 // Lister les comptes (admin) avec personne + score
@@ -297,6 +323,7 @@ app.patch('/api/accounts/:id', requireAdmin, (req, res) => {
     ['A', 'B', 'C'].includes(tier) ? tier : a.tier,
     followers != null ? Number(followers) : a.followers,
     person_id !== undefined ? (person_id ? Number(person_id) : null) : a.person_id, a.id);
+  recomputeAll(WINDOW);
   res.json({ ok: true });
 });
 
@@ -340,16 +367,17 @@ app.get('/admin', requireAdmin, (req, res) => {
     byNetwork: db.prepare('SELECT network, COUNT(*) n, COALESCE(SUM(followers),0) f FROM accounts GROUP BY network ORDER BY f DESC').all(),
     byTier: db.prepare('SELECT tier, COUNT(*) n FROM accounts GROUP BY tier').all(),
   };
-  const accounts = db.prepare(`
-    SELECT a.id, a.network, a.handle, a.followers, a.tier, p.id AS person_id, p.display_name,
-           pa.short AS party_short, pa.color AS party_color, pa.name AS party_name, s.watch_score
-    FROM accounts a LEFT JOIN persons p ON p.id = a.person_id
+  const persons = db.prepare(`
+    SELECT p.id, p.display_name, p.is_public_figure,
+           pa.short AS party_short, pa.color AS party_color, pa.name AS party_name,
+           ps.followers, ps.networks, ps.watch_score
+    FROM persons p
     LEFT JOIN person_parties pp ON pp.person_id = p.id AND pp.is_current = 1
     LEFT JOIN parties pa ON pa.id = pp.party_id
-    LEFT JOIN account_stats s ON s.account_id = a.id AND s.window_days = ?
-    ORDER BY s.watch_score DESC LIMIT 60`).all(WINDOW);
+    LEFT JOIN person_stats ps ON ps.person_id = p.id
+    ORDER BY ps.watch_score DESC`).all();
   const parties = db.prepare('SELECT id, short, name, color FROM parties ORDER BY name').all();
-  res.render('admin/index', { stats, accounts, collectors: collectorConfig(), parties });
+  res.render('admin/index', { stats, persons, collectors: collectorConfig(), parties });
 });
 
 app.use((req, res) => res.status(404).render('404'));

@@ -116,6 +116,18 @@ db.exec(`
     PRIMARY KEY (account_id, window_days)
   );
 
+  -- Rollup par PERSONNE (agrégat de ses comptes) — l'app raisonne par personnalité
+  CREATE TABLE IF NOT EXISTS person_stats (
+    person_id INTEGER PRIMARY KEY REFERENCES persons(id) ON DELETE CASCADE,
+    followers INTEGER NOT NULL DEFAULT 0,
+    posts_per_week REAL NOT NULL DEFAULT 0,
+    activity_score REAL NOT NULL DEFAULT 0,
+    watch_score REAL NOT NULL DEFAULT 0,
+    networks INTEGER NOT NULL DEFAULT 0,
+    last_post_at TEXT,
+    computed_at TEXT DEFAULT (datetime('now'))
+  );
+
   -- Registre des collecteurs (gratuits activés, payants OFF par défaut)
   CREATE TABLE IF NOT EXISTS collectors (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -147,6 +159,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS ix_mandates_person ON mandates(person_id);
   CREATE INDEX IF NOT EXISTS ix_persons_dedup ON persons(dedup_key);
   CREATE INDEX IF NOT EXISTS ix_stats_watch ON account_stats(window_days, watch_score);
+  CREATE INDEX IF NOT EXISTS ix_person_stats_watch ON person_stats(watch_score);
 `);
 
 // --- Migrations idempotentes (bases antérieures) ---
@@ -161,6 +174,7 @@ addColumn('persons', 'camp', "camp TEXT NOT NULL DEFAULT 'autre'");        // in
 addColumn('accounts', 'tier', "tier TEXT NOT NULL DEFAULT 'B'");           // A quotidien | B hebdo | C a la demande
 addColumn('posts', 'view_count', 'view_count INTEGER DEFAULT 0');
 addColumn('posts', 'engagement', 'engagement INTEGER DEFAULT 0');          // likes+reposts+comments
+addColumn('posts', 'content', "content TEXT DEFAULT ''");                  // texte du post (affiché en entier)
 addColumn('account_stats', 'quality', 'quality REAL NOT NULL DEFAULT 0');  // engagement moyen normalise
 addColumn('account_stats', 'reach', 'reach REAL NOT NULL DEFAULT 0');      // followers normalises
 addColumn('collection_runs', 'requests_count', 'requests_count INTEGER DEFAULT 0');

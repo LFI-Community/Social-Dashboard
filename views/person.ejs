@@ -58,17 +58,23 @@
 
 <% if (hotPosts && hotPosts.length) { %>
 <section>
-  <h2>Hot posts (par engagement)</h2>
-  <ul class="hot">
+  <h2>Hot posts (par engagement) — cliquer pour ouvrir sur la plateforme</h2>
+  <div class="hot-grid">
     <% hotPosts.forEach(function(p){ %>
-      <li>
-        <span class="net"><%- icon(p.network, 18) %></span>
-        <a href="<%= p.url %>" target="_blank" rel="noopener" class="muted"><%= p.posted_at.slice(0,10) %></a>
-        <% if (p.view_count) { %><span class="muted"><%= fmt(p.view_count) %> vues</span><% } %>
-        <span class="eng">❤ <%= fmt(p.engagement) %></span>
-      </li>
+      <a class="hotcard" href="<%= p.url %>" target="_blank" rel="noopener">
+        <div class="hc-head">
+          <span class="net"><%- icon(p.network, 18) %><span class="lab"><%= NET_LABEL[p.network] %></span></span>
+          <span class="muted"><%= p.posted_at.slice(0,10) %></span>
+        </div>
+        <div class="hc-body"><%= p.content || '(sans texte)' %></div>
+        <div class="hc-meta">
+          <% if (p.view_count) { %><span>👁 <%= fmt(p.view_count) %></span><% } %>
+          <span class="eng">❤ <%= fmt(p.engagement) %></span>
+          <span class="hc-go">Ouvrir ↗</span>
+        </div>
+      </a>
     <% }) %>
-  </ul>
+  </div>
 </section>
 <% } %>
 

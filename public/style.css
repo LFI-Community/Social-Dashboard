@@ -92,6 +92,12 @@ tr:hover .plogo, .breakdown li:hover .plogo, .col:hover .plogo { transform:trans
 .ico-x{color:var(--txt)} .ico-instagram{color:#e1306c} .ico-facebook{color:#1877f2}
 .ico-tiktok{color:var(--txt)} .ico-youtube{color:#ff0000} .ico-twitch{color:#9146ff}
 
+/* Jeu de pastilles réseaux d'une personnalité (cliquables) */
+.netset { display:inline-flex; align-items:center; gap:7px; flex-wrap:wrap; }
+.netdot { display:inline-grid; place-items:center; width:30px; height:30px; border-radius:9px;
+  background:var(--panel-2); border:1px solid var(--line); transition:transform .16s cubic-bezier(.34,1.56,.64,1), border-color .16s, box-shadow .16s; }
+.netdot:hover { transform:translateY(-2px) scale(1.1); border-color:color-mix(in srgb, currentColor 45%, var(--line)); box-shadow:0 4px 12px rgba(0,0,0,.25); }
+
 /* Tableau classement */
 .card { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); }
 table.ranking { width:100%; border-collapse:separate; border-spacing:0; background:var(--panel);
@@ -128,6 +134,17 @@ ul.hot { list-style:none; padding:0; margin:0; display:flex; flex-direction:colu
 ul.hot li { display:flex; align-items:center; gap:11px; padding:11px 14px; background:var(--panel);
   border:1px solid var(--line); border-radius:var(--radius-sm); }
 ul.hot .eng { margin-left:auto; font-weight:900; color:var(--rose); }
+.hot-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(310px,1fr)); gap:13px; }
+.hotcard { display:flex; flex-direction:column; gap:11px; padding:16px 18px; background:var(--panel);
+  border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow);
+  transition:transform .18s cubic-bezier(.22,1,.36,1), border-color .18s, box-shadow .18s; }
+.hotcard:hover { transform:translateY(-4px); border-color:color-mix(in srgb,var(--accent) 38%,var(--line)); box-shadow:0 14px 30px rgba(0,0,0,.38); }
+.hc-head { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.hc-body { font-size:15px; line-height:1.5; color:var(--txt); font-weight:500; }
+.hc-meta { display:flex; align-items:center; gap:14px; font-size:13px; color:var(--mut); font-weight:700; margin-top:auto; }
+.hc-meta .eng { color:var(--rose); }
+.hc-meta .hc-go { margin-left:auto; color:var(--accent); }
+.hotcard:hover .hc-go { text-decoration:underline; }
 .chart-card { padding:18px 20px; }
 
 /* Comparateur */
@@ -175,6 +192,13 @@ button:hover { filter:brightness(1.08); transform:translateY(-1px); }
 .mini.danger { background:transparent; color:#ff8091; border:1px solid var(--line); padding:4px 11px; }
 .mini.danger:hover { background:#ff8091; color:#fff; }
 .mini-sel { padding:5px 9px; border-radius:8px; font-weight:800; }
+.mini-num { width:120px; padding:6px 10px; border-radius:8px; font-weight:700; font-variant-numeric:tabular-nums; }
+.lbl { display:flex; flex-direction:column; gap:5px; font-size:12px; color:var(--mut); font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+.lbl input, .lbl select, .lbl textarea { font-weight:600; color:var(--txt); text-transform:none; letter-spacing:normal; font-size:15px; }
+textarea { background:var(--panel); border:1.5px solid var(--line); color:var(--txt); border-radius:10px; padding:10px 13px; font:inherit; resize:vertical; }
+textarea:focus { outline:none; border-color:var(--accent); }
+.danger-btn { background:transparent; border:1.5px solid #ff8091; color:#ff8091; font-weight:800; border-radius:10px; padding:10px 16px; cursor:pointer; }
+.danger-btn:hover { background:#ff8091; color:#fff; }
 .btn-ghost { display:inline-flex; align-items:center; padding:10px 17px; border-radius:10px; border:1.5px solid var(--line); color:var(--txt); font-weight:800; transition:.15s; }
 .btn-ghost:hover { border-color:var(--accent); color:var(--accent); transform:translateY(-1px); }
 .actions { display:flex; gap:10px; flex-wrap:wrap; }

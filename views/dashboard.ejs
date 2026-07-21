@@ -2,7 +2,7 @@
 
 <section class="hero">
   <h1>Qui <span class="u">surveiller</span> en priorité</h1>
-  <p class="sub">Classement par <strong>score de pertinence</strong> — activité × qualité (engagement) × reach (abonnés) × poids du mandat, fenêtre <%= window %> j. Une ligne = un compte.</p>
+  <p class="sub">Classement par <strong>score de pertinence</strong> — activité × qualité (engagement) × reach (abonnés) × poids du mandat, fenêtre <%= window %> j. Une ligne = une <strong>personnalité</strong> (tous réseaux réunis).</p>
   <div class="stats">
     <div class="stat"><span class="n"><%= counts.persons.toLocaleString('fr-FR') %></span><span class="l">personnalités</span></div>
     <div class="stat"><span class="n"><%= counts.accounts.toLocaleString('fr-FR') %></span><span class="l">comptes suivis</span></div>
@@ -36,16 +36,17 @@
 <% } else {
      const maxScore = Math.max.apply(null, rows.map(function(r){return r.watch_score||0})) || 1; %>
   <table class="ranking">
-    <thead><tr><th>#</th><th>Personnalité</th><th>Parti</th><th>Réseau</th><th class="num">Abonnés</th><th class="num">Posts/sem.</th><th>Score</th></tr></thead>
+    <thead><tr><th>#</th><th>Personnalité</th><th>Parti</th><th>Réseaux</th><th class="num">Abonnés</th><th class="num">Posts/sem.</th><th>Score</th></tr></thead>
     <tbody>
     <% rows.forEach(function(r, i){ %>
       <tr>
         <td class="rank rank-<%= i+1 %>"><% if (i<3) { %><span class="medal"><%= i+1 %></span><% } else { %><%= i+1 %><% } %></td>
-        <td><% if (r.person_id) { %><a class="pname" href="/person/<%= r.person_id %>"><%= r.display_name %></a><% } else { %><em>standalone</em><% } %></td>
+        <td><a class="pname" href="/person/<%= r.person_id %>"><%= r.display_name %></a></td>
         <td><%- plogo(r.party_short, r.party_color, r.party_name) %></td>
         <td>
-          <span class="net"><%- icon(r.network) %><span class="lab"><%= NET_LABEL[r.network] %></span></span>
-          <span class="muted">@<%= r.handle %></span>
+          <span class="netset">
+            <% r.nets.forEach(function(a){ %><a class="netdot" href="<%= a.url %>" target="_blank" rel="noopener" title="<%= NET_LABEL[a.network] %> · @<%= a.handle %> · <%= fmt(a.followers) %> abonnés"><%- icon(a.network, 18) %></a><% }) %>
+          </span>
         </td>
         <td class="num"><%= fmt(r.followers) %></td>
         <td class="num"><%= (r.posts_per_week || 0).toFixed(1) %></td>

@@ -84,6 +84,22 @@ const PEOPLE = [
     ['x', 'ZemmourEric', 1400000, 3], ['tiktok', 'ericzemmour', 600000, 1]]],
 ];
 
+// Légendes de démonstration pour les hot posts (contenu affiché en entier).
+const CAPTIONS = [
+  'Mobilisation ce week-end dans tout le pays, on ne lâche rien ✊',
+  "Face à l'inflation, voici nos propositions concrètes pour le pouvoir d'achat ⬇️",
+  "Mon intervention à l'Assemblée sur la réforme, à revoir en entier 👇",
+  'Merci pour votre accueil chaleureux sur le terrain aujourd’hui. La détermination est intacte.',
+  'Le débat de ce soir en replay — partagez largement autour de vous.',
+  'Nous exigeons des comptes. La transparence n’est pas une option. #Transparence',
+  'Reportage exclusif à ne pas manquer : ce que le gouvernement ne veut pas que vous voyiez.',
+  'Rendez-vous demain 18h pour le grand meeting. On compte sur vous !',
+  'Ma tribune dans la presse ce matin : il est temps de changer de cap.',
+  'Question au gouvernement : où est passé le budget promis aux collectivités ?',
+  'Solidarité totale avec les grévistes. Leurs revendications sont légitimes.',
+  'Fier·e de porter ce combat avec vous. Ensemble, rien ne nous arrête.',
+];
+
 // --- PRNG déterministe (reproductible) ---
 let _s = 20260721;
 const rand = () => { _s = (_s * 1103515245 + 12345) & 0x7fffffff; return _s / 0x7fffffff; };
@@ -115,8 +131,8 @@ function seed() {
      VALUES (?,?,?,?,?,?,1,?, 'seed', datetime('now'))`);
   const insDaily = db.prepare('INSERT INTO activity_daily (account_id, day, posts_count) VALUES (?,?,?)');
   const insPost = db.prepare(
-    `INSERT INTO posts (account_id, external_id, posted_at, url, like_count, view_count, engagement)
-     VALUES (?,?,?,?,?,?,?)`);
+    `INSERT INTO posts (account_id, external_id, posted_at, url, like_count, view_count, engagement, content)
+     VALUES (?,?,?,?,?,?,?,?)`);
 
   const urlFor = (net, h) => ({
     x: `https://x.com/${h}`, instagram: `https://instagram.com/${h}`,
@@ -160,8 +176,9 @@ function seed() {
           const engagement = Math.round(base);
           const views = net === 'x' || net === 'tiktok' || net === 'youtube'
             ? Math.round(engagement * (12 + rand() * 30)) : 0;
+          const caption = CAPTIONS[Math.floor(rand() * CAPTIONS.length)];
           insPost.run(aid, `${net}-${handle}-${k}`, dt.toISOString(),
-            urlFor(net, handle), Math.round(engagement * 0.8), views, engagement);
+            urlFor(net, handle), Math.round(engagement * 0.8), views, engagement, caption);
         }
       }
     }
