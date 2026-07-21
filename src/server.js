@@ -13,6 +13,20 @@ app.set('trust proxy', true);
 app.locals.ASSET_V = Date.now().toString(36);
 const PORT = process.env.PORT || 3040;
 
+// Sparkline SVG à partir d'une série [{day, posts}] (ou [nombres]).
+app.locals.spark = function (series, w = 240, h = 44) {
+  const vals = (series || []).map((p) => (typeof p === 'number' ? p : p.posts || 0));
+  if (vals.length < 2) return `<svg class="spark" width="${w}" height="${h}"></svg>`;
+  const max = Math.max(1, ...vals), n = vals.length, pad = 3;
+  const x = (i) => pad + (i * (w - 2 * pad)) / (n - 1);
+  const y = (v) => h - pad - (v / max) * (h - 2 * pad);
+  const line = vals.map((v, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+  const area = `${line} L${x(n - 1).toFixed(1)},${h - pad} L${x(0).toFixed(1)},${h - pad} Z`;
+  return `<svg class="spark" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none">`
+    + `<path class="area" d="${area}"/><path class="line" d="${line}"/></svg>`;
+};
+app.locals.fmt = (n) => (n || 0).toLocaleString('fr-FR');
+
 // --- Auth admin : PIN -> jeton HMAC en cookie (pattern regulation-radicale) ---
 const ADMIN_PIN = process.env.ADMIN_PIN || '7351';
 const ADMIN_SECRET = process.env.ADMIN_SECRET || randomBytes(32).toString('hex');
@@ -58,30 +72,50 @@ const WINDOW = Number(db.prepare("SELECT value FROM settings WHERE key='default_
 
 // ---------- Requêtes de lecture ----------
 const rankingStmt = db.prepare(`
-  SELECT p.id AS person_id, p.display_name, p.slug, p.is_public_figure,
+  SELECT p.id AS person_id, p.display_name, p.slug, p.is_public_figure, p.camp,
          a.id AS account_id, a.network, a.handle, a.followers,
          s.posts_per_week, s.watch_score, s.last_post_at
   FROM account_stats s
   JOIN accounts a ON a.id = s.account_id
   LEFT JOIN persons p ON p.id = a.person_id
-  WHERE s.window_days = ?
+  WHERE s.window_days = ? AND (?='' OR p.camp = ?) AND (?='' OR a.network = ?)
   ORDER BY s.watch_score DESC
   LIMIT ?
 `);
 
-function ranking(limit = 100) {
-  return rankingStmt.all(WINDOW, limit);
+function ranking(limit = 100, camp = '', network = '') {
+  return rankingStmt.all(WINDOW, camp, camp, network, network, limit);
 }
+
+// Série d'activité (posts/jour) sur la fenêtre, pour la sparkline d'une personne (agrégée sur ses comptes).
+const seriesStmt = db.prepare(`
+  SELECT ad.day, SUM(ad.posts_count) AS posts
+  FROM activity_daily ad JOIN accounts a ON a.id = ad.account_id
+  WHERE a.person_id = ? AND ad.day >= date('now','-90 day')
+  GROUP BY ad.day ORDER BY ad.day
+`);
+const hotPostsStmt = db.prepare(`
+  SELECT po.*, a.network, a.handle FROM posts po JOIN accounts a ON a.id = po.account_id
+  WHERE a.person_id = ? ORDER BY po.engagement DESC LIMIT 8
+`);
+const partyStmt = db.prepare(`
+  SELECT pa.name, pa.short, pa.color FROM person_parties pp JOIN parties pa ON pa.id = pp.party_id
+  WHERE pp.person_id = ? AND pp.is_current = 1 LIMIT 1
+`);
+const CAMP_LABEL = { insoumis: 'Insoumis', allie: 'Allié', adversaire: 'Adversaire', autre: 'Autre' };
 
 // ---------- Pages ----------
 app.get('/', (req, res) => {
-  const rows = ranking(100);
+  const camp = ['insoumis', 'allie', 'adversaire'].includes(req.query.camp) ? req.query.camp : '';
+  const network = String(req.query.network || '');
+  const rows = ranking(120, camp, network);
   const counts = {
     persons: db.prepare('SELECT COUNT(*) n FROM persons').get().n,
     accounts: db.prepare('SELECT COUNT(*) n FROM accounts').get().n,
     mandates: db.prepare('SELECT COUNT(*) n FROM mandates').get().n,
   };
-  res.render('dashboard', { rows, counts, window: WINDOW, collectors: collectorConfig() });
+  const note = db.prepare("SELECT value FROM settings WHERE key='dataset_note'").get()?.value || '';
+  res.render('dashboard', { rows, counts, window: WINDOW, collectors: collectorConfig(), camp, network, note, CAMP_LABEL });
 });
 
 app.get('/person/:id', (req, res) => {
@@ -89,10 +123,13 @@ app.get('/person/:id', (req, res) => {
   if (!person) return res.status(404).render('404');
   const mandates = db.prepare('SELECT * FROM mandates WHERE person_id = ? ORDER BY mandate_weight DESC').all(person.id);
   const accounts = db.prepare(`
-    SELECT a.*, s.posts_per_week, s.watch_score, s.last_post_at
+    SELECT a.*, s.posts_per_week, s.watch_score, s.last_post_at, s.quality, s.reach, s.activity_score
     FROM accounts a LEFT JOIN account_stats s ON s.account_id = a.id AND s.window_days = ?
-    WHERE a.person_id = ?`).all(WINDOW, person.id);
-  res.render('person', { person, mandates, accounts });
+    WHERE a.person_id = ? ORDER BY a.followers DESC`).all(WINDOW, person.id);
+  const series = seriesStmt.all(person.id);
+  const hotPosts = hotPostsStmt.all(person.id);
+  const party = partyStmt.get(person.id);
+  res.render('person', { person, mandates, accounts, series, hotPosts, party, CAMP_LABEL });
 });
 
 app.get('/compare', (req, res) => {
@@ -103,10 +140,14 @@ app.get('/compare', (req, res) => {
     const accounts = db.prepare(`
       SELECT a.*, s.posts_per_week, s.watch_score, s.last_post_at
       FROM accounts a LEFT JOIN account_stats s ON s.account_id = a.id AND s.window_days = ?
-      WHERE a.person_id = ?`).all(WINDOW, id);
-    return { person, accounts };
+      WHERE a.person_id = ? ORDER BY a.followers DESC`).all(WINDOW, id);
+    const party = partyStmt.get(id);
+    const totalFollowers = accounts.reduce((s, a) => s + (a.followers || 0), 0);
+    const bestScore = accounts.reduce((m, a) => Math.max(m, a.watch_score || 0), 0);
+    const ppw = accounts.reduce((s, a) => s + (a.posts_per_week || 0), 0);
+    return { person, accounts, party, totalFollowers, bestScore, ppw };
   }).filter(Boolean);
-  res.render('compare', { people, window: WINDOW });
+  res.render('compare', { people, window: WINDOW, CAMP_LABEL });
 });
 
 // ---------- API ----------

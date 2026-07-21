@@ -1,30 +1,83 @@
 <%- include('partials/head', { pageTitle: 'Comparer' }) %>
 
-<h1>Comparer des élu·es</h1>
+<h1>Comparer des personnalités</h1>
+<p class="sub muted">Benchmark côte à côte — abonnés, activité, meilleur score. Cherche puis ajoute (max 4).</p>
+
+<div class="compare-form">
+  <input id="search" placeholder="Rechercher une personnalité…" autocomplete="off">
+  <span id="results" class="muted"></span>
+</div>
 <form class="compare-form" method="get" action="/compare">
-  <label>IDs (séparés par des virgules, max 4) <input name="ids" value="<%= (people.map(function(p){return p.person.id})).join(',') %>" placeholder="12,45,78"></label>
+  <input name="ids" id="ids" value="<%= (people.map(function(p){return p.person.id})).join(',') %>" placeholder="ids ex: 1,6,18">
   <button type="submit">Comparer</button>
 </form>
 
 <% if (people.length === 0) { %>
-  <p class="muted">Saisir des IDs de personnes à comparer côte à côte.</p>
-<% } else { %>
+  <p class="muted">Aucune personnalité sélectionnée. Cherche ci-dessus, ou <a href="/">pars du classement</a>.</p>
+<% } else {
+     const maxF = Math.max.apply(null, people.map(function(p){return p.totalFollowers||0})) || 1;
+     const maxP = Math.max.apply(null, people.map(function(p){return p.ppw||0})) || 1;
+     const maxS = Math.max.apply(null, people.map(function(p){return p.bestScore||0})) || 1; %>
   <div class="compare-grid">
     <% people.forEach(function(p){ %>
       <div class="col">
         <h3><a href="/person/<%= p.person.id %>"><%= p.person.display_name %></a></h3>
-        <% if (p.accounts.length === 0) { %><p class="muted">Aucun compte.</p><% } else { %>
-          <ul>
-            <% p.accounts.forEach(function(a){ %>
-              <li><span class="net net-<%= a.network %>"><%= a.network %></span>
-                <%= a.posts_per_week != null ? a.posts_per_week.toFixed(1) + ' p/sem' : '—' %>
-                · <%= (a.followers||0).toLocaleString('fr-FR') %> ab.</li>
-            <% }) %>
-          </ul>
-        <% } %>
+        <div>
+          <span class="chip camp camp-<%= p.person.camp || 'autre' %>"><%= CAMP_LABEL[p.person.camp] || 'Autre' %></span>
+          <% if (p.party) { %><span class="chip" style="background:<%= p.party.color %>22;border-color:<%= p.party.color %>66;color:<%= p.party.color %>"><%= p.party.short %></span><% } %>
+        </div>
+
+        <div class="metric">
+          <div class="lab">Abonnés cumulés</div>
+          <div class="val num"><%= fmt(p.totalFollowers) %></div>
+          <div class="bar"><i style="width:<%= Math.round(p.totalFollowers/maxF*100) %>%"></i></div>
+        </div>
+        <div class="metric">
+          <div class="lab">Posts / sem. (cumulé)</div>
+          <div class="val num"><%= p.ppw.toFixed(0) %></div>
+          <div class="bar"><i style="width:<%= Math.round(p.ppw/maxP*100) %>%"></i></div>
+        </div>
+        <div class="metric">
+          <div class="lab">Meilleur score</div>
+          <div class="val num"><%= p.bestScore.toFixed(2) %></div>
+          <div class="bar"><i style="width:<%= Math.round(p.bestScore/maxS*100) %>%"></i></div>
+        </div>
+
+        <ul class="hot" style="margin-top:10px">
+          <% p.accounts.forEach(function(a){ %>
+            <li><span class="net net-<%= a.network %>"><%= a.network %></span>
+              <span class="muted num"><%= fmt(a.followers) %> ab.</span>
+              <span class="eng num"><%= a.posts_per_week != null ? a.posts_per_week.toFixed(1) : '—' %>/sem</span></li>
+          <% }) %>
+        </ul>
       </div>
     <% }) %>
   </div>
 <% } %>
+
+<script>
+const search = document.getElementById('search'), results = document.getElementById('results'), ids = document.getElementById('ids');
+let t;
+search.addEventListener('input', function(){
+  clearTimeout(t);
+  t = setTimeout(async function(){
+    const q = search.value.trim();
+    if (!q) { results.innerHTML = ''; return; }
+    const r = await fetch('/api/persons?q=' + encodeURIComponent(q));
+    const rows = await r.json();
+    results.innerHTML = rows.slice(0,6).map(function(p){
+      return '<a href="#" data-id="'+p.id+'" class="chip" style="margin:2px">'+p.display_name+'</a>';
+    }).join('');
+  }, 200);
+});
+results.addEventListener('click', function(e){
+  const a = e.target.closest('a[data-id]'); if (!a) return;
+  e.preventDefault();
+  const cur = ids.value.split(',').map(function(s){return s.trim()}).filter(Boolean);
+  if (cur.length < 4 && !cur.includes(a.dataset.id)) cur.push(a.dataset.id);
+  ids.value = cur.join(',');
+  search.value = ''; results.innerHTML = '';
+});
+</script>
 
 <%- include('partials/foot') %>

@@ -1,11 +1,53 @@
 <%- include('partials/head', { pageTitle: person.display_name }) %>
 
 <a class="back" href="/">← Classement</a>
-<h1><%= person.display_name %> <% if (person.is_public_figure) { %><span class="chip">personnalité</span><% } %></h1>
+<h1>
+  <%= person.display_name %>
+  <span class="chip camp camp-<%= person.camp || 'autre' %>"><%= CAMP_LABEL[person.camp] || 'Autre' %></span>
+  <% if (party) { %><span class="chip" style="background:<%= party.color %>22;border-color:<%= party.color %>66;color:<%= party.color %>"><%= party.short %></span><% } %>
+  <% if (person.is_public_figure) { %><span class="chip">personnalité</span><% } %>
+</h1>
+
+<%
+  const totalFollowers = accounts.reduce(function(s,a){return s+(a.followers||0)},0);
+  const bestScore = accounts.reduce(function(m,a){return Math.max(m,a.watch_score||0)},0);
+  const ppw = accounts.reduce(function(s,a){return s+(a.posts_per_week||0)},0);
+%>
+<div class="stats">
+  <div class="stat"><span class="n"><%= fmt(totalFollowers) %></span><span class="l">abonnés cumulés</span></div>
+  <div class="stat"><span class="n"><%= ppw.toFixed(0) %></span><span class="l">posts / sem.</span></div>
+  <div class="stat"><span class="n"><%= bestScore.toFixed(2) %></span><span class="l">meilleur score</span></div>
+  <div class="stat"><span class="n"><%= accounts.length %></span><span class="l">réseaux</span></div>
+</div>
+
+<section>
+  <h2>Activité (90 j, tous réseaux)</h2>
+  <div class="card"><%- spark(series, 1000, 70) %></div>
+</section>
+
+<section>
+  <h2>Comptes</h2>
+  <% if (accounts.length === 0) { %><p class="muted">Aucun compte rattaché.</p><% } else { %>
+    <table class="ranking">
+      <thead><tr><th>Réseau</th><th>Handle</th><th class="num">Abonnés</th><th class="num">Posts/sem.</th><th class="num">Score</th></tr></thead>
+      <tbody>
+      <% accounts.forEach(function(a){ %>
+        <tr>
+          <td><span class="net net-<%= a.network %>"><%= a.network %></span></td>
+          <td><a href="<%= a.url %>" target="_blank" rel="noopener">@<%= a.handle %></a> <% if (a.tier==='A'){ %><span class="chip">Tier A</span><% } %></td>
+          <td class="num"><%= fmt(a.followers) %></td>
+          <td class="num"><%= a.posts_per_week != null ? a.posts_per_week.toFixed(1) : '—' %></td>
+          <td class="num"><%= a.watch_score != null ? a.watch_score.toFixed(2) : '—' %></td>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+  <% } %>
+</section>
 
 <section>
   <h2>Mandats</h2>
-  <% if (mandates.length === 0) { %><p class="muted">Aucun mandat enregistré.</p><% } else { %>
+  <% if (mandates.length === 0) { %><p class="muted">Aucun mandat (personnalité hors mandat).</p><% } else { %>
     <ul class="mandates">
       <% mandates.forEach(function(m){ %>
         <li><strong><%= m.function_label || m.mandate_type %></strong> — <%= m.territory_label || m.territory_code %>
@@ -15,24 +57,22 @@
   <% } %>
 </section>
 
+<% if (hotPosts && hotPosts.length) { %>
 <section>
-  <h2>Comptes</h2>
-  <% if (accounts.length === 0) { %><p class="muted">Aucun compte rattaché.</p><% } else { %>
-    <table class="ranking">
-      <thead><tr><th>Réseau</th><th>Handle</th><th>Abonnés</th><th>Posts/sem.</th><th>Score</th></tr></thead>
-      <tbody>
-      <% accounts.forEach(function(a){ %>
-        <tr>
-          <td><span class="net net-<%= a.network %>"><%= a.network %></span></td>
-          <td><a href="<%= a.url %>" target="_blank" rel="noopener">@<%= a.handle %></a></td>
-          <td><%= (a.followers || 0).toLocaleString('fr-FR') %></td>
-          <td><%= a.posts_per_week != null ? a.posts_per_week.toFixed(1) : '—' %></td>
-          <td><%= a.watch_score != null ? a.watch_score.toFixed(3) : '—' %></td>
-        </tr>
-      <% }) %>
-      </tbody>
-    </table>
-  <% } %>
+  <h2>Hot posts (par engagement)</h2>
+  <ul class="hot">
+    <% hotPosts.forEach(function(p){ %>
+      <li>
+        <span class="net net-<%= p.network %>"><%= p.network %></span>
+        <a href="<%= p.url %>" target="_blank" rel="noopener" class="muted"><%= p.posted_at.slice(0,10) %></a>
+        <% if (p.view_count) { %><span class="muted"><%= fmt(p.view_count) %> vues</span><% } %>
+        <span class="eng">❤ <%= fmt(p.engagement) %></span>
+      </li>
+    <% }) %>
+  </ul>
 </section>
+<% } %>
+
+<p class="muted"><a href="/compare?ids=<%= person.id %>">→ Ajouter au comparateur</a></p>
 
 <%- include('partials/foot') %>

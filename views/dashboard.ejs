@@ -2,12 +2,22 @@
 
 <section class="hero">
   <h1>Qui surveiller en priorité</h1>
-  <p class="sub">Classement par <strong>score de pertinence</strong> (activité × poids du mandat), fenêtre <%= window %> j.</p>
+  <p class="sub">Classement par <strong>score de pertinence</strong> (activité × qualité × reach × poids du mandat), fenêtre <%= window %> j. Une ligne = un compte.</p>
   <div class="stats">
-    <div class="stat"><span class="n"><%= counts.persons.toLocaleString('fr-FR') %></span><span class="l">personnes</span></div>
+    <div class="stat"><span class="n"><%= counts.persons.toLocaleString('fr-FR') %></span><span class="l">personnalités</span></div>
+    <div class="stat"><span class="n"><%= counts.accounts.toLocaleString('fr-FR') %></span><span class="l">comptes suivis</span></div>
     <div class="stat"><span class="n"><%= counts.mandates.toLocaleString('fr-FR') %></span><span class="l">mandats</span></div>
-    <div class="stat"><span class="n"><%= counts.accounts.toLocaleString('fr-FR') %></span><span class="l">comptes</span></div>
   </div>
+
+  <% if (note) { %><div class="demo-banner">🧪 <%= note %></div><% } %>
+
+  <div class="filters">
+    <a href="/" class="<%= !camp ? 'on' : '' %>">Tous</a>
+    <a href="/?camp=insoumis" class="<%= camp==='insoumis' ? 'on' : '' %>">🔴 Insoumis</a>
+    <a href="/?camp=allie" class="<%= camp==='allie' ? 'on' : '' %>">🟢 Alliés</a>
+    <a href="/?camp=adversaire" class="<%= camp==='adversaire' ? 'on' : '' %>">⚫ Adversaires</a>
+  </div>
+
   <div class="collectors">
     <% collectors.forEach(function(c){ %>
       <span class="chip <%= c.enabled ? 'on' : 'off' %> <%= c.kind %>"><%= c.network %><% if (c.kind==='paid'){ %> · payant<% } %></span>
@@ -17,22 +27,28 @@
 
 <% if (rows.length === 0) { %>
   <div class="empty">
-    <p>Aucune donnée d'activité pour l'instant.</p>
-    <p class="muted">Prochaines étapes : import RNE (<code>npm run import:rne</code>), découverte Wikidata (<code>npm run import:wikidata</code>), puis collecte YouTube/Twitch.</p>
+    <p>Aucune donnée pour ce filtre.</p>
+    <p class="muted">Charger le jeu de démo : <code>npm run seed</code></p>
   </div>
-<% } else { %>
+<% } else {
+     const maxScore = Math.max.apply(null, rows.map(function(r){return r.watch_score||0})) || 1; %>
   <table class="ranking">
-    <thead><tr><th>#</th><th>Personne</th><th>Réseau</th><th>Posts/sem.</th><th>Abonnés</th><th>Dernier post</th><th>Score</th></tr></thead>
+    <thead><tr><th>#</th><th>Personnalité</th><th>Camp</th><th>Réseau</th><th class="num">Abonnés</th><th class="num">Posts/sem.</th><th>Score</th></tr></thead>
     <tbody>
     <% rows.forEach(function(r, i){ %>
       <tr>
-        <td class="rank"><%= i + 1 %></td>
+        <td class="rank <%= i<3 ? 'top' : '' %>"><%= i + 1 %></td>
         <td><% if (r.person_id) { %><a href="/person/<%= r.person_id %>"><%= r.display_name %></a><% } else { %><em>standalone</em><% } %></td>
+        <td><span class="chip camp camp-<%= r.camp || 'autre' %>"><%= (CAMP_LABEL[r.camp]||'—') %></span></td>
         <td><span class="net net-<%= r.network %>"><%= r.network %></span> <span class="muted">@<%= r.handle %></span></td>
-        <td><%= (r.posts_per_week || 0).toFixed(1) %></td>
-        <td><%= (r.followers || 0).toLocaleString('fr-FR') %></td>
-        <td class="muted"><%= r.last_post_at ? r.last_post_at.slice(0,10) : '—' %></td>
-        <td><strong><%= (r.watch_score || 0).toFixed(3) %></strong></td>
+        <td class="num"><%= fmt(r.followers) %></td>
+        <td class="num"><%= (r.posts_per_week || 0).toFixed(1) %></td>
+        <td>
+          <div class="score">
+            <strong><%= (r.watch_score || 0).toFixed(2) %></strong>
+            <span class="score-bar" style="width:<%= Math.round((r.watch_score||0)/maxScore*70) %>px"></span>
+          </div>
+        </td>
       </tr>
     <% }) %>
     </tbody>

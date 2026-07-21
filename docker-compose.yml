@@ -1,0 +1,20 @@
+services:
+  social-dashboard:
+    build: .
+    container_name: social-dashboard
+    restart: unless-stopped
+    ports:
+      - "3040:3040"
+    volumes:
+      - ve_data:/app/data
+    environment:
+      - PORT=3040
+      - DATA_DIR=/app/data
+      - ADMIN_PIN=${ADMIN_PIN:-7351}
+      - ADMIN_SECRET=${ADMIN_SECRET:-}
+      - MONID_API_KEY=${MONID_API_KEY:-}
+      - MONID_WORKSPACE_ID=${MONID_WORKSPACE_ID:-}
+      - ENABLE_PAID=${ENABLE_PAID:-0}
+
+volumes:
+  ve_data:

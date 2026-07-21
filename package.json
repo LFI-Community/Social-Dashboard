@@ -7,6 +7,8 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
+    "seed": "node scripts/seed-poc.js",
+    "score": "node src/scoring.js",
     "import:rne": "node src/importers/rne.js",
     "import:wikidata": "node src/importers/wikidata.js",
     "refresh": "node src/scheduler.js --once"

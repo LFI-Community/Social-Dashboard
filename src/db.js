@@ -156,18 +156,32 @@ function addColumn(table, name, ddl) {
 }
 export { addColumn };
 
+// Deltas issus de la spec technique (Phase 1) — orientation LFI + hot posts + composantes de score.
+addColumn('persons', 'camp', "camp TEXT NOT NULL DEFAULT 'autre'");        // insoumis|allie|adversaire|autre
+addColumn('accounts', 'tier', "tier TEXT NOT NULL DEFAULT 'B'");           // A quotidien | B hebdo | C a la demande
+addColumn('posts', 'view_count', 'view_count INTEGER DEFAULT 0');
+addColumn('posts', 'engagement', 'engagement INTEGER DEFAULT 0');          // likes+reposts+comments
+addColumn('account_stats', 'quality', 'quality REAL NOT NULL DEFAULT 0');  // engagement moyen normalise
+addColumn('account_stats', 'reach', 'reach REAL NOT NULL DEFAULT 0');      // followers normalises
+addColumn('collection_runs', 'requests_count', 'requests_count INTEGER DEFAULT 0');
+addColumn('collection_runs', 'cost_eur', 'cost_eur REAL DEFAULT 0');
+addColumn('collection_runs', 'dry_run', 'dry_run INTEGER DEFAULT 0');
+db.exec('CREATE INDEX IF NOT EXISTS ix_persons_camp ON persons(camp)');
+
 // --- Seed du registre des collecteurs (idempotent) ---
 // Gratuits (API publique/quota) = enabled. Payants (Apify, contre ToS) = OFF par défaut.
+// monid.ai = voie principale réseaux fermés (acté au brainstorm) ; YouTube/Twitch gratuits.
 const COLLECTOR_SEED = [
   ['youtube', 'YouTube Data API v3', 'free', 1],
   ['twitch', 'Twitch Helix API', 'free', 1],
-  ['x', 'X / Twitter (Apify)', 'paid', 0],
-  ['instagram', 'Instagram (Apify)', 'paid', 0],
-  ['facebook', 'Facebook (Apify)', 'paid', 0],
-  ['tiktok', 'TikTok (Apify)', 'paid', 0],
+  ['x', 'X / Twitter (monid.ai)', 'paid', 0],
+  ['instagram', 'Instagram (monid.ai)', 'paid', 0],
+  ['facebook', 'Facebook (monid.ai)', 'paid', 0],
+  ['tiktok', 'TikTok (monid.ai)', 'paid', 0],
 ];
 const insCollector = db.prepare(
-  'INSERT OR IGNORE INTO collectors (network, name, kind, enabled) VALUES (?,?,?,?)'
+  'INSERT INTO collectors (network, name, kind, enabled) VALUES (?,?,?,?) ' +
+  'ON CONFLICT(network) DO UPDATE SET name=excluded.name, kind=excluded.kind'
 );
 for (const [net, name, kind, enabled] of COLLECTOR_SEED) insCollector.run(net, name, kind, enabled);
 

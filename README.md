@@ -18,8 +18,17 @@ Outil de veille des comptes réseaux sociaux des élus et personnalités politiq
 ```bash
 npm install
 cp .env.example .env   # ajuster PIN/secret/clés
+npm run seed           # jeu de démo (24 personnalités FR réelles, 41 comptes, par camp)
 npm run dev            # http://localhost:3040
 ```
+
+**Jeu de démo (POC)** : `npm run seed` charge des personnalités politiques FR réelles (handles publics) réparties par **camp** (insoumis / allié / adversaire), avec mandats, 90 j d'activité et hot posts. ⚠ Les nombres d'abonnés sont un **snapshot approximatif** (ordre de grandeur public), pas des chiffres live — la collecte réelle viendra de monid.ai (Phase 3).
+
+**Docker / déploiement** :
+```bash
+docker compose up -d --build   # seed auto si base vide, sert sur :3040
+```
+Exposé sur **https://social.bhconsulting.dev** (VPS Hetzner + cloudflared).
 
 ## État (avancement par phases)
 
@@ -28,7 +37,8 @@ npm run dev            # http://localhost:3040
 - [ ] **Phase 1.5** — ⚠️ pré-requis pré-mortem AVANT de coder la collecte : PoC monid.ai (5 comptes réels, mesurer couverture + coût/req réels), note RGPD 1 page, verrouiller le score (bornes absolues, par réseau)
 - [ ] **Phase 2** — import RNE (référentiel de recherche) + découverte Wikidata + enrichissement Regards Citoyens
 - [ ] **Phase 3** — TRONC : watchlist CRUD + collecteur monid.ai + moteur de scoring + scheduler étagé
-- [ ] **Phase 4** — branches : Classement → Fiche élu → Comparateur → Radar nouveaux posts
+- [x] **POC démo** — Classement (filtres camp + score), Fiche (sparkline + hot posts), Comparateur (recherche + barres), jeu de démo seedé, Dockerfile + compose
+- [ ] **Phase 4** — branches finalisées : Radar nouveaux posts + polish + données live
 - [ ] **Phase 5** — collecteurs gratuits YouTube/Twitch + déploiement
 
 ## Structure
