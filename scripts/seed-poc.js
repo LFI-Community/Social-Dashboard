@@ -66,7 +66,9 @@ const PEOPLE = [
 
   // ---------- ADVERSAIRES ----------
   ['Marine Le Pen', 'adversaire', 'RN', ['depute', 'Députée', 'Pas-de-Calais'], false, [
-    ['x', 'MLP_officiel', 1800000, 2], ['tiktok', 'mlp.officiel', 700000, 0.8]]],
+    ['x', 'MLP_officiel', 1800000, 2], ['tiktok', 'mlp.officiel', 700000, 0.8],
+    ['instagram', 'marine_lepen', 950000, 1], ['facebook', 'MarineLePen', 1500000, 1],
+    ['youtube', 'UCU3z3px1_RCqYBwrs8LJVWg', 210000, 0.2]]],
   ['Jordan Bardella', 'adversaire', 'RN', ['mep', 'Député européen', 'France'], false, [
     ['x', 'J_Bardella', 1250000, 3], ['tiktok', 'jordanbardella', 1600000, 1.5],
     ['instagram', 'jordanbardella', 980000, 1.2]]],
