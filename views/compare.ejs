@@ -1,83 +1,100 @@
 <%- include('partials/head', { pageTitle: 'Comparer' }) %>
 
-<h1>Comparer des personnalités</h1>
-<p class="sub muted">Benchmark côte à côte — abonnés, activité, meilleur score. Cherche puis ajoute (max 4).</p>
+<h1 class="title">Comparateur</h1>
+<p class="sub muted">Benchmark côte à côte des personnalités suivies — abonnés, activité, score, détail par réseau. Cherche et ajoute jusqu'à 4.</p>
 
 <div class="compare-form">
-  <input id="search" placeholder="Rechercher une personnalité…" autocomplete="off">
-  <span id="results" class="muted"></span>
+  <input id="search" placeholder="🔍 Rechercher une personnalité suivie…" autocomplete="off" style="min-width:280px">
 </div>
-<form class="compare-form" method="get" action="/compare">
-  <input name="ids" id="ids" value="<%= (people.map(function(p){return p.person.id})).join(',') %>" placeholder="ids ex: 1,6,18">
+<div id="results" class="results-pop"></div>
+
+<div id="chips" class="sel-chips"></div>
+<form id="cmp" class="compare-form" method="get" action="/compare">
+  <input type="hidden" name="ids" id="ids" value="<%= (people.map(function(p){return p.person.id})).join(',') %>">
   <button type="submit">Comparer</button>
+  <% if (people.length) { %><a class="btn-ghost" href="/compare">Réinitialiser</a><% } %>
 </form>
 
 <% if (people.length === 0) { %>
-  <p class="muted">Aucune personnalité sélectionnée. Cherche ci-dessus, ou <a href="/">pars du classement</a>.</p>
+  <div class="empty">
+    <p>Aucune personnalité sélectionnée.</p>
+    <p class="muted">Cherche ci-dessus, ou pars du <a href="/">classement</a>.</p>
+  </div>
 <% } else {
      const maxF = Math.max.apply(null, people.map(function(p){return p.totalFollowers||0})) || 1;
      const maxP = Math.max.apply(null, people.map(function(p){return p.ppw||0})) || 1;
-     const maxS = Math.max.apply(null, people.map(function(p){return p.bestScore||0})) || 1; %>
+     const maxS = Math.max.apply(null, people.map(function(p){return p.bestScore||0})) || 1;
+     // Union ordonnée des réseaux présents chez les sélectionnés
+     const order = ['x','instagram','tiktok','facebook','youtube','twitch'];
+     const nets = order.filter(function(net){ return people.some(function(p){ return p.accounts.some(function(a){return a.network===net}); }); });
+     const cell = function(p, net){ return p.accounts.find(function(a){return a.network===net}) || null; };
+%>
+  <!-- Cartes synthèse -->
   <div class="compare-grid">
     <% people.forEach(function(p){ %>
       <div class="col">
         <h3><a href="/person/<%= p.person.id %>"><%= p.person.display_name %></a></h3>
-        <div>
-          <span class="chip camp camp-<%= p.person.camp || 'autre' %>"><%= CAMP_LABEL[p.person.camp] || 'Autre' %></span>
-          <% if (p.party) { %><span class="chip" style="background:<%= p.party.color %>22;border-color:<%= p.party.color %>66;color:<%= p.party.color %>"><%= p.party.short %></span><% } %>
+        <div style="margin-bottom:6px">
+          <% if (p.party) { %><%- plogo(p.party.short, p.party.color, p.party.name) %> <span class="muted"><%= p.party.name %></span><% } else { %><span class="muted">Sans parti</span><% } %>
         </div>
-
-        <div class="metric">
-          <div class="lab">Abonnés cumulés</div>
-          <div class="val num"><%= fmt(p.totalFollowers) %></div>
-          <div class="bar"><i style="width:<%= Math.round(p.totalFollowers/maxF*100) %>%"></i></div>
-        </div>
-        <div class="metric">
-          <div class="lab">Posts / sem. (cumulé)</div>
-          <div class="val num"><%= p.ppw.toFixed(0) %></div>
-          <div class="bar"><i style="width:<%= Math.round(p.ppw/maxP*100) %>%"></i></div>
-        </div>
-        <div class="metric">
-          <div class="lab">Meilleur score</div>
-          <div class="val num"><%= p.bestScore.toFixed(2) %></div>
-          <div class="bar"><i style="width:<%= Math.round(p.bestScore/maxS*100) %>%"></i></div>
-        </div>
-
-        <ul class="hot" style="margin-top:10px">
-          <% p.accounts.forEach(function(a){ %>
-            <li><span class="net net-<%= a.network %>"><%= a.network %></span>
-              <span class="muted num"><%= fmt(a.followers) %> ab.</span>
-              <span class="eng num"><%= a.posts_per_week != null ? a.posts_per_week.toFixed(1) : '—' %>/sem</span></li>
-          <% }) %>
-        </ul>
+        <div class="metric"><div class="lab">Abonnés cumulés</div><div class="val num"><%= fmt(p.totalFollowers) %></div><div class="bar"><i style="width:<%= Math.round(p.totalFollowers/maxF*100) %>%"></i></div></div>
+        <div class="metric"><div class="lab">Posts / sem. (cumulé)</div><div class="val num"><%= p.ppw.toFixed(0) %></div><div class="bar"><i style="width:<%= Math.round(p.ppw/maxP*100) %>%"></i></div></div>
+        <div class="metric"><div class="lab">Meilleur score</div><div class="val num"><%= p.bestScore.toFixed(2) %></div><div class="bar"><i style="width:<%= Math.round(p.bestScore/maxS*100) %>%"></i></div></div>
       </div>
     <% }) %>
   </div>
+
+  <!-- Matrice par réseau -->
+  <section>
+    <h2>Détail par réseau (abonnés · posts/sem.)</h2>
+    <div style="overflow-x:auto">
+    <table class="ranking compare-matrix">
+      <thead><tr><th>Réseau</th><% people.forEach(function(p){ %><th><%= p.person.display_name.split(' ').slice(-1)[0] %></th><% }) %></tr></thead>
+      <tbody>
+      <% nets.forEach(function(net){ %>
+        <tr>
+          <td><span class="net"><%- icon(net,20) %><span class="lab"><%= NET_LABEL[net] %></span></span></td>
+          <% people.forEach(function(p){ var a=cell(p,net); %>
+            <td class="num">
+              <% if (a) { %>
+                <strong><%= fmt(a.followers) %></strong><br>
+                <span class="muted"><%= a.posts_per_week!=null?a.posts_per_week.toFixed(1):'—' %>/sem</span>
+              <% } else { %><span class="muted">—</span><% } %>
+            </td>
+          <% }) %>
+        </tr>
+      <% }) %>
+      </tbody>
+    </table>
+    </div>
+  </section>
 <% } %>
 
 <script>
-const search = document.getElementById('search'), results = document.getElementById('results'), ids = document.getElementById('ids');
+const search=document.getElementById('search'), results=document.getElementById('results'), ids=document.getElementById('ids'), chips=document.getElementById('chips');
+const names = {}; // id -> nom (pour les chips)
+<% people.forEach(function(p){ %>names['<%= p.person.id %>']=<%- JSON.stringify(p.person.display_name) %>;<% }) %>
+
+function renderChips(){
+  const cur = ids.value.split(',').map(s=>s.trim()).filter(Boolean);
+  chips.innerHTML = cur.map(id=>'<span class="chip sel">'+(names[id]||('#'+id))+' <a data-rm="'+id+'">✕</a></span>').join('');
+}
+renderChips();
+
 let t;
-search.addEventListener('input', function(){
-  clearTimeout(t);
-  t = setTimeout(async function(){
-    const q = search.value.trim();
-    if (!q) { results.innerHTML = ''; return; }
-    const r = await fetch('/api/persons?q=' + encodeURIComponent(q));
-    const rows = await r.json();
-    results.innerHTML = rows.slice(0,6).map(function(p){
-      return '<a href="#" data-id="'+p.id+'" class="chip" style="margin:2px">'+p.display_name+'</a>';
-    }).join('');
-  }, 200);
-});
-results.addEventListener('click', function(e){
-  const a = e.target.closest('a[data-id]'); if (!a) return;
-  e.preventDefault();
-  const cur = ids.value.split(',').map(function(s){return s.trim()}).filter(Boolean);
-  if (cur.length < 4 && !cur.includes(a.dataset.id)) cur.push(a.dataset.id);
-  ids.value = cur.join(',');
-  search.value = ''; results.innerHTML = '';
-});
+search.addEventListener('input', ()=>{ clearTimeout(t); t=setTimeout(async ()=>{
+  const q=search.value.trim(); if(!q){ results.innerHTML=''; return; }
+  const r=await fetch('/api/persons?q='+encodeURIComponent(q)); const rows=await r.json();
+  results.innerHTML=rows.slice(0,7).map(p=>'<a class="chip" data-add="'+p.id+'" data-name="'+p.display_name.replace(/"/g,'&quot;')+'">'+p.display_name+'</a>').join('');
+},200); });
+
+results.addEventListener('click', e=>{ const a=e.target.closest('[data-add]'); if(!a) return;
+  const cur=ids.value.split(',').map(s=>s.trim()).filter(Boolean);
+  if(cur.length<4 && !cur.includes(a.dataset.add)){ cur.push(a.dataset.add); names[a.dataset.add]=a.dataset.name; }
+  ids.value=cur.join(','); search.value=''; results.innerHTML=''; renderChips(); });
+
+chips.addEventListener('click', e=>{ const a=e.target.closest('[data-rm]'); if(!a) return;
+  ids.value=ids.value.split(',').map(s=>s.trim()).filter(Boolean).filter(id=>id!==a.dataset.rm).join(','); renderChips(); });
 </script>
 
 <%- include('partials/foot') %>

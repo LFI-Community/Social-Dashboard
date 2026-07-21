@@ -1,10 +1,9 @@
 <%- include('partials/head', { pageTitle: person.display_name }) %>
 
 <a class="back" href="/">← Classement</a>
-<h1>
+<h1 class="title">
   <%= person.display_name %>
-  <span class="chip camp camp-<%= person.camp || 'autre' %>"><%= CAMP_LABEL[person.camp] || 'Autre' %></span>
-  <% if (party) { %><span class="chip" style="background:<%= party.color %>22;border-color:<%= party.color %>66;color:<%= party.color %>"><%= party.short %></span><% } %>
+  <% if (party) { %><%- plogo(party.short, party.color, party.name) %> <span class="muted" style="font-size:15px;font-weight:700"><%= party.name %></span><% } %>
   <% if (person.is_public_figure) { %><span class="chip">personnalité</span><% } %>
 </h1>
 
@@ -22,22 +21,22 @@
 
 <section>
   <h2>Activité (90 j, tous réseaux)</h2>
-  <div class="card"><%- spark(series, 1000, 70) %></div>
+  <div class="card chart-card"><%- spark(series, 1040, 90) %></div>
 </section>
 
 <section>
-  <h2>Comptes</h2>
+  <h2>Comptes suivis</h2>
   <% if (accounts.length === 0) { %><p class="muted">Aucun compte rattaché.</p><% } else { %>
     <table class="ranking">
       <thead><tr><th>Réseau</th><th>Handle</th><th class="num">Abonnés</th><th class="num">Posts/sem.</th><th class="num">Score</th></tr></thead>
       <tbody>
       <% accounts.forEach(function(a){ %>
         <tr>
-          <td><span class="net net-<%= a.network %>"><%= a.network %></span></td>
+          <td><span class="net"><%- icon(a.network, 20) %><span class="lab"><%= NET_LABEL[a.network] %></span></span></td>
           <td><a href="<%= a.url %>" target="_blank" rel="noopener">@<%= a.handle %></a> <% if (a.tier==='A'){ %><span class="chip">Tier A</span><% } %></td>
           <td class="num"><%= fmt(a.followers) %></td>
           <td class="num"><%= a.posts_per_week != null ? a.posts_per_week.toFixed(1) : '—' %></td>
-          <td class="num"><%= a.watch_score != null ? a.watch_score.toFixed(2) : '—' %></td>
+          <td class="num"><strong><%= a.watch_score != null ? a.watch_score.toFixed(2) : '—' %></strong></td>
         </tr>
       <% }) %>
       </tbody>
@@ -63,7 +62,7 @@
   <ul class="hot">
     <% hotPosts.forEach(function(p){ %>
       <li>
-        <span class="net net-<%= p.network %>"><%= p.network %></span>
+        <span class="net"><%- icon(p.network, 18) %></span>
         <a href="<%= p.url %>" target="_blank" rel="noopener" class="muted"><%= p.posted_at.slice(0,10) %></a>
         <% if (p.view_count) { %><span class="muted"><%= fmt(p.view_count) %> vues</span><% } %>
         <span class="eng">❤ <%= fmt(p.engagement) %></span>

@@ -1,6 +1,42 @@
   </main>
   <footer class="foot">
-    <span>Veille Élus — données RNE (data.gouv.fr) &amp; Wikidata · MVP</span>
+    <span><span class="phi">φ</span> Social Dashboard — veille des personnalités politiques FR · données de démonstration</span>
   </footer>
+
+  <script>
+  (function(){
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    // Barres (score + comparateur) : remplissage animé depuis 0
+    document.querySelectorAll('.score-track > i, .bar > i').forEach(function(el){
+      const target = el.style.width || '0%';
+      if (reduce) { el.style.width = target; return; }
+      el.style.width = '0%';
+      requestAnimationFrame(function(){ requestAnimationFrame(function(){ el.style.width = target; }); });
+    });
+
+    // Entrée échelonnée des lignes de tableau
+    if (!reduce) {
+      document.querySelectorAll('table.ranking tbody tr').forEach(function(tr, i){
+        tr.style.animation = 'fadeUp .45s both';
+        tr.style.animationDelay = Math.min(i * 0.03, 0.4) + 's';
+      });
+    }
+
+    // Count-up des tuiles de stats (entiers uniquement)
+    if (!reduce) document.querySelectorAll('.stat .n').forEach(function(el){
+      const raw = el.textContent.trim();
+      if (!/^[\d\s .,]+$/.test(raw)) return;               // ignore "2.6M", etc.
+      const target = parseInt(raw.replace(/[\s .,]/g, ''), 10);
+      if (!isFinite(target) || target <= 0) return;
+      const dur = 900, t0 = performance.now();
+      (function step(t){
+        const p = Math.min(1, (t - t0) / dur);
+        el.textContent = Math.round(target * (1 - Math.pow(1 - p, 3))).toLocaleString('fr-FR');
+        if (p < 1) requestAnimationFrame(step);
+      })(t0);
+    });
+  })();
+  </script>
 </body>
 </html>
