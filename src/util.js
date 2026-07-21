@@ -39,3 +39,21 @@ export const MANDATE_WEIGHT = {
 export function mandateWeight(type) {
   return MANDATE_WEIGHT[type] ?? MANDATE_WEIGHT.autre;
 }
+
+// Permalien d'un post au format de chaque plateforme (id déterministe depuis `seed`).
+// Démo = ids synthétiques (structure correcte, non résolvables) ; la collecte réelle (monid.ai) fournit les vrais.
+export function postUrl(net, handle, seed) {
+  let x = (Number(seed) >>> 0) || 1;
+  const next = () => (x = (x * 1103515245 + 12345) & 0x7fffffff);
+  const digits = (n) => { let s = ''; for (let i = 0; i < n; i++) s += next() % 10; return s; };
+  const alnum = (n) => { const c = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; let s = ''; for (let i = 0; i < n; i++) s += c[next() % c.length]; return s; };
+  switch (net) {
+    case 'x': return `https://x.com/${handle}/status/1${digits(17)}`;
+    case 'tiktok': return `https://www.tiktok.com/@${handle}/video/7${digits(18)}`;
+    case 'youtube': return `https://www.youtube.com/watch?v=${alnum(11)}`;
+    case 'instagram': return `https://www.instagram.com/p/${alnum(11)}/`;
+    case 'facebook': return `https://www.facebook.com/${handle}/posts/${digits(15)}`;
+    case 'twitch': return `https://www.twitch.tv/${handle}/clip/${alnum(16)}`;
+    default: return `https://${handle}`;
+  }
+}

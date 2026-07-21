@@ -4,6 +4,7 @@
 // Dans les deux cas : recalcul des stats (compte + personne).
 import { db } from './db.js';
 import { computeAccountStats, computePersonStats } from './scoring.js';
+import { postUrl } from './util.js';
 
 const MONID_KEY = process.env.MONID_API_KEY;
 const WINDOW = Number(db.prepare("SELECT value FROM settings WHERE key='default_window'").get()?.value) || 90;
@@ -59,7 +60,8 @@ function demoEnrich(acc) {
         dt.setUTCHours(8 + Math.floor(rand() * 12));
         const engagement = Math.round(followers * (0.004 + rand() * 0.03) * (0.6 + niveau / 6));
         const views = ['x', 'tiktok', 'youtube'].includes(acc.network) ? Math.round(engagement * (12 + rand() * 28)) : 0;
-        insPost.run(acc.id, `${acc.network}-${acc.handle}-${k}`, dt.toISOString(), acc.url || '',
+        insPost.run(acc.id, `${acc.network}-${acc.handle}-${k}`, dt.toISOString(),
+          postUrl(acc.network, acc.handle, Math.floor(rand() * 1e9)),
           Math.round(engagement * 0.8), views, engagement, CAPTIONS[Math.floor(rand() * CAPTIONS.length)]);
       }
     });

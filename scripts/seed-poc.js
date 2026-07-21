@@ -7,7 +7,7 @@
 // Usage : node scripts/seed-poc.js
 import { db } from '../src/db.js';
 import { recomputeAll } from '../src/scoring.js';
-import { slugify, mandateWeight } from '../src/util.js';
+import { slugify, mandateWeight, postUrl } from '../src/util.js';
 
 // --- Partis (sigle, couleur) ---
 const PARTIES = [
@@ -178,7 +178,7 @@ function seed() {
             ? Math.round(engagement * (12 + rand() * 30)) : 0;
           const caption = CAPTIONS[Math.floor(rand() * CAPTIONS.length)];
           insPost.run(aid, `${net}-${handle}-${k}`, dt.toISOString(),
-            urlFor(net, handle), Math.round(engagement * 0.8), views, engagement, caption);
+            postUrl(net, handle, Math.floor(rand() * 1e9)), Math.round(engagement * 0.8), views, engagement, caption);
         }
       }
     }
