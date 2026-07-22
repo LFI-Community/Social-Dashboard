@@ -111,6 +111,7 @@
 <script>
 const toast=(m,ok=true)=>{const t=document.getElementById('toast');t.textContent=m;t.style.color=ok?'var(--vert)':'#ff8091';setTimeout(()=>t.textContent='',3500);};
 async function api(url,opt={}){const r=await fetch(url,{headers:{'Content-Type':'application/json'},...opt});const j=await r.json().catch(()=>({}));return{ok:r.ok,j};}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 
 async function addPerson(e){e.preventDefault();const f=e.target,b=Object.fromEntries(new FormData(f));b.is_public_figure=f.is_public_figure.checked?1:0;
   const{ok,j}=await api('/api/persons',{method:'POST',body:JSON.stringify(b)});
@@ -132,7 +133,7 @@ document.getElementById('p-filter').addEventListener('input',e=>{const q=e.targe
 
 const ps=document.getElementById('acc-person-search'),pr=document.getElementById('acc-person-results'),pid=document.getElementById('acc-person-id');
 let pt;ps.addEventListener('input',()=>{clearTimeout(pt);pt=setTimeout(async()=>{const q=ps.value.trim();if(!q){pr.innerHTML='';pid.value='';return;}
-  const{j}=await api('/api/persons?q='+encodeURIComponent(q));pr.innerHTML=(j||[]).slice(0,6).map(p=>'<a class="chip" data-pid="'+p.id+'">'+p.display_name+'</a>').join('');},200);});
+  const{j}=await api('/api/persons?q='+encodeURIComponent(q));pr.innerHTML=(j||[]).slice(0,6).map(p=>'<a class="chip" data-pid="'+esc(p.id)+'">'+esc(p.display_name)+'</a>').join('');},200);});
 pr.addEventListener('click',e=>{const a=e.target.closest('[data-pid]');if(!a)return;pid.value=a.dataset.pid;ps.value=a.textContent;pr.innerHTML='';});
 </script>
 

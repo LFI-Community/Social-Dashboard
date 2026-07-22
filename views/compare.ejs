@@ -72,12 +72,13 @@
 
 <script>
 const search=document.getElementById('search'), results=document.getElementById('results'), ids=document.getElementById('ids'), chips=document.getElementById('chips');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const names = {}; // id -> nom (pour les chips)
-<% people.forEach(function(p){ %>names['<%= p.person.id %>']=<%- JSON.stringify(p.person.display_name) %>;<% }) %>
+<% people.forEach(function(p){ %>names['<%= p.person.id %>']=<%- JSON.stringify(p.person.display_name).replace(/</g,'\\u003c').replace(/>/g,'\\u003e') %>;<% }) %>
 
 function renderChips(){
   const cur = ids.value.split(',').map(s=>s.trim()).filter(Boolean);
-  chips.innerHTML = cur.map(id=>'<span class="chip sel">'+(names[id]||('#'+id))+' <a data-rm="'+id+'">✕</a></span>').join('');
+  chips.innerHTML = cur.map(id=>'<span class="chip sel">'+esc(names[id]||('#'+id))+' <a data-rm="'+esc(id)+'">✕</a></span>').join('');
 }
 renderChips();
 
@@ -85,7 +86,7 @@ let t;
 search.addEventListener('input', ()=>{ clearTimeout(t); t=setTimeout(async ()=>{
   const q=search.value.trim(); if(!q){ results.innerHTML=''; return; }
   const r=await fetch('/api/persons?q='+encodeURIComponent(q)); const rows=await r.json();
-  results.innerHTML=rows.slice(0,7).map(p=>'<a class="chip" data-add="'+p.id+'" data-name="'+p.display_name.replace(/"/g,'&quot;')+'">'+p.display_name+'</a>').join('');
+  results.innerHTML=rows.slice(0,7).map(p=>'<a class="chip" data-add="'+esc(p.id)+'" data-name="'+esc(p.display_name)+'">'+esc(p.display_name)+'</a>').join('');
 },200); });
 
 results.addEventListener('click', e=>{ const a=e.target.closest('[data-add]'); if(!a) return;
